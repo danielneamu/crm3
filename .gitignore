@@ -1,0 +1,21 @@
+# Config files with credentials
+/config/config.dev.php
+/config/config.prod.php
+
+# Logs
+/logs/*.log
+/logs/*.txt
+
+# IDE
+.vscode/
+.idea/
+*.sublime-*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary
+*.tmp
+*.bak
+*.swp
