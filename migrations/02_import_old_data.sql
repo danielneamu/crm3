@@ -17,7 +17,7 @@ SELECT
     id_companies,
     name_companies,
     city_companies,
-    contact_companies AS fiscal_code,
+    contact_companies,
     NOW()
 FROM danielne_app_temp.companies;
 
@@ -35,7 +35,7 @@ SELECT
     id_agent,
     nume_agent,
     cod_agent,
-    team_agent AS current_team,
+    team_agent,
     status_agent,
     NOW()
 FROM danielne_app_temp.agents;
@@ -79,7 +79,7 @@ INSERT IGNORE INTO
 SELECT *
 FROM danielne_app_temp.partagmap;
 
--- Import Projects
+-- Import Projects (without partner_project - removed from schema)
 INSERT INTO
     danielne_crm3.projects (
         id_project,
@@ -90,7 +90,6 @@ INSERT INTO
         contract_project,
         agent_project,
         company_project,
-        partner_project,
         eft_command,
         solution_dev_number,
         eft_case,
@@ -109,7 +108,6 @@ SELECT
     contract_project,
     agent_project,
     company_project,
-    NULL,
     b2b,
     sd,
     pt,
@@ -120,12 +118,21 @@ SELECT
     NOW()
 FROM danielne_app_temp.projects;
 
--- Import Status History
+-- Import Project-Partner relationships (new junction table)
+INSERT INTO
+    danielne_crm3.project_partners (project_id, partner_id)
+SELECT id_project, partner_project
+FROM danielne_app_temp.projects
+WHERE
+    partner_project IS NOT NULL;
+
+-- Import Status History with deadline
 INSERT INTO
     danielne_crm3.project_status_history (
         project_id,
         status_name,
         responsible_party,
+        deadline,
         changed_at,
         comment
     )
@@ -155,6 +162,7 @@ SELECT
         ) THEN responsible_status
         ELSE 'Presales'
     END,
+    checkDate_status,
     createDate_status,
     comments_status
 FROM danielne_app_temp.status;
@@ -171,6 +179,9 @@ FROM danielne_crm3.parteneri
 UNION ALL
 SELECT 'Projects:', COUNT(*)
 FROM danielne_crm3.projects
+UNION ALL
+SELECT 'Project Partners:', COUNT(*)
+FROM danielne_crm3.project_partners
 UNION ALL
 SELECT 'Status history:', COUNT(*)
 FROM danielne_crm3.project_status_history;
