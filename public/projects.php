@@ -12,6 +12,11 @@ if (!file_exists(__DIR__ . '/data/projects.json')) {
     $controller->generateJson();
 }
 ?>
+
+<?php require_once '../app/views/modals/project_modal.php'; ?>
+<?php require_once '../app/views/modals/status_modal.php'; ?>
+
+
 <!DOCTYPE html>
 <html>
 
@@ -20,7 +25,16 @@ if (!file_exists(__DIR__ . '/data/projects.json')) {
     <title>Projects - <?= APP_NAME ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
-    <link href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <!-- DataTables CSS with all extensions -->
+    <link href="https://cdn.datatables.net/v/bs5/jszip-3.10.1/dt-2.3.4/b-3.2.5/b-colvis-3.2.5/b-html5-3.2.5/b-print-3.2.5/cr-2.1.2/cc-1.1.1/date-1.6.1/fc-5.0.5/fh-4.0.4/r-3.0.7/sc-2.4.3/sb-1.8.4/sp-2.3.5/sl-3.1.3/sr-1.4.3/datatables.min.css" rel="stylesheet">
+
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+    <!-- ADD Bootstrap Datepicker CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-datepicker@1.10.0/dist/css/bootstrap-datepicker3.min.css">
+
+    <link href="assets/css/projects.css" rel="stylesheet" />
+
 </head>
 
 <body>
@@ -35,6 +49,15 @@ if (!file_exists(__DIR__ . '/data/projects.json')) {
         </div>
     </nav>
     <div class="container-fluid">
+        <div class="mb-3">
+            <button class="btn btn-primary" id="btnAddProject">
+                <i class="bi bi-plus-circle"></i> New Project
+            </button>
+            <button class="btn btn-secondary" id="btnEditProject" disabled>
+                <i class="bi bi-pencil"></i> Edit Project
+            </button>
+        </div>
+
         <table id="projectsTable" class="table table-sm table-hover" style="width:100%">
             <thead>
                 <tr>
@@ -64,9 +87,40 @@ if (!file_exists(__DIR__ . '/data/projects.json')) {
     </div>
     <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
-    <script src="assets/js/projects.js"></script>
+    <!-- PDFMake for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
+
+    <!-- DataTables JS with all extensions -->
+    <script src="https://cdn.datatables.net/v/bs5/jszip-3.10.1/dt-2.3.4/b-3.2.5/b-colvis-3.2.5/b-html5-3.2.5/b-print-3.2.5/cr-2.1.2/cc-1.1.1/date-1.6.1/fc-5.0.5/fh-4.0.4/r-3.0.7/sc-2.4.3/sb-1.8.4/sp-2.3.5/sl-3.1.3/sr-1.4.3/datatables.min.js"></script>
+
+
+    <!-- ADD Bootstrap Datepicker JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap-datepicker@1.10.0/dist/js/bootstrap-datepicker.min.js"></script>
+
+    <script src="assets/js/projects-datatable.js"></script>
+    <script src="assets/js/projects-actions.js"></script>
+    <script src="assets/js/status-actions.js"></script>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+
+
+    <!-- Toast Container -->
+    <div class="toast-container position-fixed top-0 end-0 p-3">
+        <div id="projectToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+                <i class="bi bi-check-circle-fill text-success me-2" id="toastIcon"></i>
+                <strong class="me-auto" id="toastTitle">Success</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+            </div>
+            <div class="toast-body" id="toastMessage">
+                Operation completed successfully
+            </div>
+        </div>
+    </div>
+
 </body>
 
 </html>
