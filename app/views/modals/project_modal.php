@@ -334,7 +334,7 @@
 </style>
 
 
-    // Example: Toggle active status text based on checkbox
+    <!--//* Example: Toggle active status text based on checkbox -->
     <script defer >
         window.addEventListener('load', function() {
             if (typeof jQuery !== 'undefined') {

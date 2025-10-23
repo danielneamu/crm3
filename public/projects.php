@@ -35,6 +35,7 @@ if (!file_exists(__DIR__ . '/data/projects.json')) {
 
     <link href="assets/css/projects.css" rel="stylesheet" />
 
+
 </head>
 
 <body>

@@ -15,6 +15,8 @@
                     <div>
                         <strong id="statusProjectName"></strong>
                         <br>
+                        <small class="text-muted">Firma: <span id="statusFirma"></span></small>
+                        <br>
                         <small class="text-muted">Project ID: <span id="statusProjectId"></span></small>
                     </div>
                 </div>

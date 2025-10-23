@@ -1,4 +1,5 @@
 let currentProjectId = null;
+let projectCompany  = null; 
 
 $(document).ready(function () {
     // Open status modal on company name click
@@ -6,10 +7,13 @@ $(document).ready(function () {
         e.preventDefault();
         currentProjectId = $(this).data('project-id');
         const projectName = $(this).data('project-name');
-
+        const projectCompany = $(this).data('project-company');
+        console.log('Opening status modal for project data:', $(this).data());
+        
         $('#statusProjectName').text(projectName);
         $('#statusProjectId').text(currentProjectId);
         $('#statusProjectIdInput').val(currentProjectId);
+        $('#statusFirma').text(projectCompany);
 
         loadStatusHistory(currentProjectId);
         $('#statusModal').modal('show');

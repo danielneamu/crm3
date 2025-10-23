@@ -98,11 +98,18 @@ $(document).ready(function () {
         }
     });
 
-    // Destroy Select2 when modal is hidden
+    // Destroy Select2 when Project Modal is hidden
     $('#projectModal').on('hidden.bs.modal', function () {
         if ($('#partners').hasClass('select2-hidden-accessible')) {
             $('#partners').select2('destroy');
         }
+    });
+
+    // Deselect rows when Project Modal modal is closed
+    $('#projectModal').on('hidden.bs.modal', function () {
+        projectsTable.rows().deselect();
+        selectedRow = null;
+        $('#btnEditProject').prop('disabled', true);
     });
 
     // Team change - load agents

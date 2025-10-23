@@ -1,0 +1,22 @@
+/* DataTables Selected Row Override */
+table.dataTable tbody > tr.selected > * {
+    box-shadow: inset 0 0 0 9999px #9ec5fe !important;
+    color: black !important;
+}
+
+/* Hover state for selected rows */
+table.dataTable.table-hover tbody > tr.selected:hover > * {
+    box-shadow: inset 0 0 0 9999px #cfe2ff !important;
+}
+
+/* Links in selected row */
+table.dataTable tbody > tr.selected a {
+    color: black !important;
+    font-weight: 600;
+}
+
+
+/* Badges in selected row */
+table.dataTable tbody > tr.selected .badge {
+    border: 1px solid white;
+}
