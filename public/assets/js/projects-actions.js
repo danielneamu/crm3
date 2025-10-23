@@ -17,11 +17,20 @@ $(document).ready(function () {
 
 
     // Add Project
+    // Add Project
     $('#btnAddProject').click(function () {
         $('#projectModalLabel').text('Add Project');
         $('#projectForm')[0].reset();
         $('#projectId').val('');
         $('#agent').prop('disabled', true).html('<option value="">Select Team First</option>');
+
+        // Re-enable fields
+        $('#company').prop('disabled', false);
+        $('#team').prop('disabled', false);
+        $('#createDate').prop('disabled', false);
+
+        // Remove hidden inputs if they exist
+        $('#hiddenCompany, #hiddenTeam, #hiddenAgent').remove();
 
         // Set today as default date
         $('#createDate').datepicker('setDate', new Date());
@@ -33,6 +42,7 @@ $(document).ready(function () {
         $('#projectModal').modal('show');
     });
 
+
     // Edit Project
     $('#btnEditProject').click(function () {
         if (!selectedRow) return;
@@ -40,9 +50,28 @@ $(document).ready(function () {
         $('#projectModalLabel').text('Edit Project');
         loadDropdowns(() => {
             populateForm(selectedRow);
+
+            // Disable fields that shouldn't be edited
+            $('#company').prop('disabled', true);
+            $('#team').prop('disabled', true);
+            $('#agent').prop('disabled', true);
+            $('#createDate').prop('disabled', true);
+
+            // Add hidden inputs with correct backend field names
+            if ($('#hiddenCompany').length === 0) {
+                $('#projectForm').append(`
+                <input type="hidden" id="hiddenCompany" name="company_project" value="${selectedRow.company_id}">
+                <input type="hidden" id="hiddenAgent" name="agent_project" value="${selectedRow.agent_id}">
+            `);
+            } else {
+                $('#hiddenCompany').val(selectedRow.company_id);
+                $('#hiddenAgent').val(selectedRow.agent_id);
+            }
         });
         $('#projectModal').modal('show');
     });
+
+
 
     // Initialize datepicker when modal is shown
     $('#projectModal').on('shown.bs.modal', function () {
@@ -215,18 +244,18 @@ function loadDropdowns(callback) {
 }
 
 // Populate form for editing
+// Populate form for editing
 function populateForm(data) {
-    console.log('populateForm data:', data);  // Debug: see all data
-    console.log('TCV value:', data.tcv_project);  // Debug: see TCV specifically
+    console.log('populateForm data:', data);
 
     $('#projectId').val(data.id_project);
     $('#company').val(data.company_id);
     $('#projectName').val(data.proiect);
-    $('#team').val(data.team).trigger('change');
+    $('#team').val(data.team);
 
-    setTimeout(() => {
-        $('#agent').val(data.agent_id);
-    }, 300);
+    // Manually populate agent dropdown with current agent (even if inactive)
+    $('#agent').prop('disabled', true);
+    $('#agent').html(`<option value="${data.agent_id}" selected>${data.agent}</option>`);
 
     $('#projectType').val(data.type);
     $('#tcv').val(data.tcv_project);
