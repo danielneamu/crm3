@@ -41,14 +41,14 @@ try {
         case 'POST':
             $projectId = $_POST['project_id'] ?? null;
             $statusName = $_POST['status_name'] ?? null;
-            $responsible = $_POST['responsible_party'] ?? null;
+            $responsible = !empty($_POST['responsible_party']) ? $_POST['responsible_party'] : null;
             $changedAt = $_POST['changed_at'] ?? date('Y-m-d');
             $deadline = !empty($_POST['deadline']) ? $_POST['deadline'] : null;
             $comments = !empty($_POST['comments']) ? $_POST['comments'] : null;
 
-            if (!$projectId || !$statusName || !$responsible) {
+            if (empty($projectId) || empty($statusName)) {
                 http_response_code(400);
-                echo json_encode(['error' => 'Required fields missing']);
+                echo json_encode(['error' => 'Required fields: project_id, status_name']);
                 exit;
             }
 

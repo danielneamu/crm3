@@ -56,7 +56,7 @@
                                     </div>
                                     <div class="col-md-2">
                                         <label class="form-label fw-semibold">Responsible</label>
-                                        <select class="form-select" name="responsible_party" id="statusResponsible" required>
+                                        <select class="form-select" name="responsible_party" id="statusResponsible">
                                             <option value="">Select</option>
                                             <option value="Presales">Presales</option>
                                             <option value="Sales">Sales</option>

@@ -1,4 +1,6 @@
 let selectedRow = null;
+let isMultiSelectMode = false;
+
 
 $(document).ready(function () {
     // Enable/disable Edit button on row selection
@@ -11,6 +13,8 @@ $(document).ready(function () {
         selectedRow = null;
         $('#btnEditProject').prop('disabled', true);
     });
+
+
 
     // Add Project
     $('#btnAddProject').click(function () {
@@ -115,7 +119,7 @@ $(document).ready(function () {
                         method: 'GET',
                         success: function () {
                             showToast('Success', 'Project updated successfully', 'success');
-                            setTimeout(() => location.reload(), 1500);
+                            projectsTable.ajax.reload(null, false);
                         },
                         error: function () {
                             showToast('Warning', 'Project saved but JSON refresh failed', 'error');
@@ -143,7 +147,7 @@ $(document).ready(function () {
                         method: 'GET',
                         success: function () {
                             showToast('Success', 'Project created successfully', 'success');
-                            setTimeout(() => location.reload(), 1500);
+                            projectsTable.ajax.reload(null, false);
                         },
                         error: function () {
                             showToast('Warning', 'Project saved but JSON refresh failed', 'error');
@@ -158,8 +162,10 @@ $(document).ready(function () {
         }
     });
 
-
+    //****************************************************** */
     // Toast function
+    //****************************************************** */
+
     function showToast(title, message, type) {
         const toast = new bootstrap.Toast(document.getElementById('projectToast'));
         const icon = $('#toastIcon');
@@ -175,9 +181,10 @@ $(document).ready(function () {
             icon.removeClass('bi-check-circle-fill text-success').addClass('bi-exclamation-triangle-fill text-danger');
             header.removeClass('bg-success').addClass('bg-danger bg-opacity-10');
         }
-
         toast.show();
     }
+
+       //* END DOCUMENT READY
 });
 
 // Load dropdowns

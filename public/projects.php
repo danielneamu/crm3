@@ -49,25 +49,61 @@ if (!file_exists(__DIR__ . '/data/projects.json')) {
         </div>
     </nav>
     <div class="container-fluid">
-        <div class="mb-3">
-            <button class="btn btn-primary" id="btnAddProject">
-                <i class="bi bi-plus-circle"></i> New Project
-            </button>
-            <button class="btn btn-secondary" id="btnEditProject" disabled>
-                <i class="bi bi-pencil"></i> Edit Project
-            </button>
+
+        <!-- TOP BAR WITH FILTERS AND SEARCH -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="d-flex align-items-center gap-2">
+                <button class="btn btn-primary" id="btnAddProject">
+                    <i class="bi bi-plus-circle"></i> New Project
+                </button>
+                <button class="btn btn-secondary" id="btnEditProject" disabled>
+                    <i class="bi bi-pencil"></i> Edit Project
+                </button>
+
+                <!-- Filter Dropdowns -->
+                <select class="form-select" id="teamFilter" style="width: 200px;">
+                </select>
+                <select class="form-select" id="assignedFilter" style="width: 200px;">
+                    <option value="">All Assigned</option>
+                </select>
+                <select class="form-select" id="statusFilter" style="width: 200px;">
+                    <option value="">All Status</option>
+                </select>
+
+                <!-- Active Status Toggle Buttons -->
+                <div class="btn-group" role="group" aria-label="Active status filter">
+                    <button type="button" class="btn btn-outline-success btn-sm" id="filterActive">
+                        <i class="bi bi-toggle-on"></i> Active
+                    </button>
+                    <button type="button" class="btn btn-outline-dark btn-sm active" id="filterAll">
+                        All
+                    </button>
+                    <button type="button" class="btn btn-outline-danger btn-sm" id="filterInactive">
+                        <i class="bi bi-toggle-off"></i> Inactive
+                    </button>
+                </div>
+            </div>
+
+            <div class="position-relative" style="width: 300px;">
+                <input type="text" id="projectSearch" class="form-control pe-5" placeholder="Search projects...">
+                <button type="button" id="clearSearch" class="btn btn-link position-absolute top-50 end-0 translate-middle-y text-muted" style="display: none; padding: 0.375rem 0.75rem;">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
         </div>
 
-        <table id="projectsTable" class="table table-sm table-hover" style="width:100%">
+
+
+
+        <table id="projectsTable" class="table table-sm table-striped table-hover" style="width:100%">
             <thead>
                 <tr>
-                    <th></th>
                     <th>ID</th>
                     <th>Firma</th>
                     <th>Proiect</th>
                     <th>CUI</th>
                     <th>Agent</th>
-                    <th>Team</th>
+                    <th>Team</th> <!-- Add this - will be hidden by JS -->
                     <th>PT</th>
                     <th>SD</th>
                     <th>EFT</th>
