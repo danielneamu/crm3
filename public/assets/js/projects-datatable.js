@@ -161,17 +161,18 @@ $(document).ready(function () {
             {
                 data: 'assigned',
                 defaultContent: '-',
-                render: function (data, type, row, meta) {
-                    if (!data) {
-                        d = null;
+                render: function (data) {
+
+                    // If null/empty → return empty string
+                    if (!data) return "";
+
+                    // Style based on value
+                    if (data === "Presales") {
+                        return `<span class="badge rounded-pill text-bg-info">${data}</span>`;
                     }
-                    if (data == "Presales") {
-                        d = '<span class="badge rounded-pill text-bg-info">' + data + "</span>";
-                    } else {
-                        d = "<span class='badge roudned-pill text-bg-light'>" + data + "</span>";
-                    }
-                    return d;
-                },
+
+                    return `<span class="badge rounded-pill text-bg-light">${data}</span>`;
+                }
 
 
             },
@@ -280,8 +281,11 @@ $(document).ready(function () {
             infoEmpty: "No projects found",
             infoFiltered: "(filtered from _MAX_ total projects)",
             zeroRecords: "No matching projects found",
-            emptyTable: "No projects available"
-        }
+            emptyTable: "No projects available",
+            processing: '<div class="modern-dt-processing"><div class="modern-spinner"></div><span>Processing...</span></div>'
+
+        },
+        processing: true
     });
 
     // Connect custom search input to DataTable

@@ -138,6 +138,24 @@ $(document).ready(function () {
         const formData = new FormData($('#projectForm')[0]);
         const isEdit = $('#projectId').val() !== '';
 
+        // Handle partners explicitly - IMPORTANT FIX
+        const partners = $('#partners').val() || []; // Get Select2 value (array or null)
+
+        // Remove any existing partner entries from FormData
+        formData.delete('partners');
+        formData.delete('partners[]');
+
+        // Add partners back - even if empty
+        if (partners.length > 0) {
+            partners.forEach(partnerId => {
+                formData.append('partners[]', partnerId);
+            });
+        } else {
+            // Send empty string to signal "clear all partners"
+            formData.append('partners[]', '');
+        }
+        
+
         if (isEdit) {
             // For PUT, convert FormData to URLSearchParams
             const urlEncodedData = new URLSearchParams(formData).toString();

@@ -84,16 +84,8 @@ $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 </head>
 
 <body>
-    <nav class="navbar navbar-dark bg-primary">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="projects.php"><?= APP_NAME ?></a>
-            <div class="d-flex align-items-center">
-                <a href="users.php" class="btn btn-outline-light btn-sm me-2">Users</a>
-                <span class="text-white me-3"><?= htmlspecialchars($_SESSION['full_name']) ?></span>
-                <a href="logout.php" class="btn btn-outline-light btn-sm">Logout</a>
-            </div>
-        </div>
-    </nav>
+    <?php require_once '../includes/navbar.php'; ?>
+
 
     <div class="container-fluid mt-4">
         <div class="row mb-3">

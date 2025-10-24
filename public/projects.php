@@ -5,12 +5,12 @@ require_once '../includes/auth.php';
 requireLogin();
 
 // Generate JSON if missing
-if (!file_exists(__DIR__ . '/data/projects.json')) {
-    require_once '../config/database.php';
-    require_once '../app/controllers/ProjectController.php';
-    $controller = new ProjectController((new Database())->getConnection());
-    $controller->generateJson();
-}
+//if (!file_exists(__DIR__ . '/data/projects.json')) {
+require_once '../config/database.php';
+require_once '../app/controllers/ProjectController.php';
+$controller = new ProjectController((new Database())->getConnection());
+$controller->generateJson();
+//}
 ?>
 
 <?php require_once '../app/views/modals/project_modal.php'; ?>
@@ -39,16 +39,8 @@ if (!file_exists(__DIR__ . '/data/projects.json')) {
 </head>
 
 <body>
-    <nav class="navbar navbar-dark bg-primary mb-3">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="projects.php"><?= APP_NAME ?></a>
-            <div class="d-flex gap-2">
-                <a href="users.php" class="btn btn-outline-light btn-sm">Users</a>
-                <span class="text-white"><?= $_SESSION['full_name'] ?></span>
-                <a href="logout.php" class="btn btn-outline-light btn-sm">Logout</a>
-            </div>
-        </div>
-    </nav>
+    <?php require_once '../includes/navbar.php'; ?>
+
     <div class="container-fluid">
 
         <!-- TOP BAR WITH FILTERS AND SEARCH -->
@@ -145,7 +137,7 @@ if (!file_exists(__DIR__ . '/data/projects.json')) {
 
 
     <!-- Toast Container -->
-    <div class="toast-container position-fixed top-0 end-0 p-3">
+    <div class="toast-container position-fixed top-0 start-50 translate-middle-x p-3">
         <div id="projectToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
             <div class="toast-header">
                 <i class="bi bi-check-circle-fill text-success me-2" id="toastIcon"></i>
