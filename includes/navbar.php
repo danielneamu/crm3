@@ -9,7 +9,7 @@
             <a href="partners.php" class="btn btn-outline-light btn-sm <?= basename($_SERVER['PHP_SELF']) == 'partners.php' ? 'active' : '' ?>">Partners</a>
             <a href="users.php" class="btn btn-outline-light btn-sm <?= basename($_SERVER['PHP_SELF']) == 'users.php' ? 'active' : '' ?>">Users</a>
             <span class="text-white"><?= $_SESSION['full_name'] ?? 'User' ?></span>
-            <a href="../logout.php" class="btn btn-outline-light btn-sm">Logout</a>
+            <a href="logout.php" class="btn btn-outline-light btn-sm">Logout</a>
         </div>
     </div>
 </nav>

@@ -1,3 +1,3 @@
 <?php
-header("Location: /public/projects.php");
+header("Location: public/projects.php");
 exit;

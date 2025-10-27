@@ -1,11 +1,10 @@
 <?php
-session_start();
-if (!isset($_SESSION['username'])) {
-    header('location: ../login/main/login.php');
-    exit;
-}
-require_once '../config/config.php';
-?>
+    require_once '../config/config.php';
+    require_once '../includes/session.php';
+    require_once '../includes/auth.php';
+    requireLogin();
+
+    ?>
 <!DOCTYPE html>
 <html lang="en">
 
