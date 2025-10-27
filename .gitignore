@@ -1,6 +1,7 @@
 # Config files with credentials
 /config/config.dev.php
 /config/config.prod.php
+/public/data/projects.json
 
 # Logs
 /logs/*.log
