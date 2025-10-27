@@ -2,6 +2,7 @@
     <div class="container-fluid">
         <a class="navbar-brand" href="projects.php"><?= APP_NAME ?></a>
         <div class="d-flex gap-2">
+            <a href="dashboard.php" class="btn btn-outline-light btn-sm <?= basename($_SERVER['PHP_SELF']) == 'dashboard.php' ? 'active' : '' ?>">Home</a>
             <a href="projects.php" class="btn btn-outline-light btn-sm <?= basename($_SERVER['PHP_SELF']) == 'projects.php' ? 'active' : '' ?>">Projects</a>
             <a href="agents.php" class="btn btn-outline-light btn-sm <?= basename($_SERVER['PHP_SELF']) == 'agents.php' ? 'active' : '' ?>">Agents</a>
             <a href="companies.php" class="btn btn-outline-light btn-sm <?= basename($_SERVER['PHP_SELF']) == 'companies.php' ? 'active' : '' ?>">Companies</a>
