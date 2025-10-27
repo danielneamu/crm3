@@ -33,7 +33,7 @@ class ProjectController
                 $data['company_project'],
                 $data['agent_project'],
                 $data['project_type'] ?? null,
-                !empty($data['tcv_project']) ? $data['tcv_project'] : null,
+                !empty($data['tcv_project']) ? $data['tcv_project'] : 0,
                 !empty($data['contract_project']) ? $data['contract_project'] : null,
                 $data['eft_command'] ?? null,
                 $data['solution_dev_number'] ?? null,
