@@ -1,22 +1,3 @@
-// ===== TOAST NOTIFICATION =====
-function showToast(message, type = 'success') {
-    const toast = document.getElementById('globalToast');
-    const toastBody = document.getElementById('toastMessage');
-
-    const colors = {
-        success: 'bg-success text-white',
-        error: 'bg-danger text-white',
-        warning: 'bg-warning text-dark',
-        info: 'bg-info text-white'
-    };
-
-    toast.className = `toast align-items-center border-0 ${colors[type] || colors.success}`;
-    toastBody.textContent = message;
-
-    const bsToast = new bootstrap.Toast(toast, { delay: 3000 });
-    bsToast.show();
-}
-
 // ===== GLOBAL VARIABLES =====
 let availableTags = [];
 let selectedTags = [];
@@ -129,11 +110,11 @@ $(document).on('click', '.btn-delete-tag', function () {
             method: 'DELETE',
             success: function (response) {
                 if (response.success) {
-                    showToast('Tag deleted', 'success');
+                    showToast('Success','Tag succesfully deleted', 'success');
                     loadTagsList();
                     loadAvailableTags();
                 } else {
-                    showToast('Error: ' + response.error, 'error');
+                    showToast('Error', 'Error: ' + response.error, 'error');
                 }
             }
         });
@@ -154,13 +135,13 @@ function saveTag() {
         data: JSON.stringify(data),
         success: function (response) {
             if (response.success) {
-                showToast('Tag saved', 'success');
+                showToast('Success','Tag saved', 'success');
                 $('#tagForm')[0].reset();
                 $('#tagId').val('');
                 loadTagsList();
                 loadAvailableTags();
             } else {
-                showToast('Error: ' + response.error, 'error');
+                showToast('Error', 'Error: ' + response.error, 'error');
             }
         }
     });
@@ -276,13 +257,13 @@ function savePartner() {
             if (response.success) {
                 $('#partnerModal').modal('hide');
                 partnersTable.ajax.reload();
-                showToast('Partner saved successfully!', 'success');
+                showToast('Success','Partner saved successfully!', 'success');
             } else {
-                showToast('Error: ' + (response.error || 'Unknown error'), 'error');
+                showToast('Error','Error: ' + (response.error || 'Unknown error'), 'error');
             }
         },
         error: function () {
-            showToast('Failed to save partner', 'error');
+            showToast('Error', 'Failed to save partner', 'error');
         }
     });
 }

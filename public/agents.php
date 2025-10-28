@@ -17,6 +17,8 @@ requireLogin();
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
     <link href="https://cdn.datatables.net/v/bs5/jszip-3.10.1/dt-2.3.4/b-3.2.5/b-colvis-3.2.5/b-html5-3.2.5/b-print-3.2.5/cr-2.1.2/cc-1.1.1/date-1.6.1/fc-5.0.5/fh-4.0.4/r-3.0.7/sc-2.4.3/sb-1.8.4/sp-2.3.5/sl-3.1.3/sr-1.4.3/datatables.min.css" rel="stylesheet">
     <link href="assets/css/agents.css" rel="stylesheet" />
+    <!-- Your toaslt CSS -->
+    <link href="assets/css/toast.css" rel="stylesheet">
 </head>
 
 <body>
@@ -77,6 +79,12 @@ requireLogin();
                 </thead>
             </table>
         </div>
+
+
+        <?php
+        require_once '../includes/footer.php';
+        ?>
+
         <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
@@ -85,21 +93,6 @@ requireLogin();
         <script src="assets/js/agents-datatable.js"></script>
         <script src="assets/js/agents-actions.js"></script>
 
-        <!-- Toast Container -->
-        <div class="toast-container position-fixed top-0 start-50 translate-middle-x p-3">
-            <div id="agentToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
-                <div class="toast-header">
-                    <i class="bi bi-check-circle-fill text-success me-2" id="toastIcon"></i>
-                    <strong class="me-auto" id="toastTitle">Success</strong>
-                    <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
-                </div>
-                <div class="toast-body" id="toastMessage">
-                    Operation completed successfully
-                </div>
-            </div>
-        </div>
-
-        
 
 </body>
 

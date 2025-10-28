@@ -34,6 +34,8 @@ $controller->generateJson();
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-datepicker@1.10.0/dist/css/bootstrap-datepicker3.min.css">
 
     <link href="assets/css/projects.css" rel="stylesheet" />
+    <!-- Your toaslt CSS -->
+    <link href="assets/css/toast.css" rel="stylesheet">
 
 
 </head>
@@ -114,6 +116,8 @@ $controller->generateJson();
             </thead>
         </table>
     </div>
+
+    <?php require_once '../includes/footer.php';  ?>
     <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <!-- PDFMake for PDF export -->
@@ -136,19 +140,7 @@ $controller->generateJson();
 
 
 
-    <!-- Toast Container -->
-    <div class="toast-container position-fixed top-0 start-50 translate-middle-x p-3">
-        <div id="projectToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
-            <div class="toast-header">
-                <i class="bi bi-check-circle-fill text-success me-2" id="toastIcon"></i>
-                <strong class="me-auto" id="toastTitle">Success</strong>
-                <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
-            </div>
-            <div class="toast-body" id="toastMessage">
-                Operation completed successfully
-            </div>
-        </div>
-    </div>
+
 
 </body>
 
