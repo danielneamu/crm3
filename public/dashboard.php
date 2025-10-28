@@ -295,16 +295,15 @@ requireLogin();
         </div>
     </div>
 
-
-    <!-- Load Chart.js first, then stats, then charts -->
     <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Load Chart.js first, then stats, then charts -->
+
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
-
-    <script src="assets/js/dashboard-charts.js"></script>
     <script src="assets/js/dashboard-stats.js"></script>
-
+    <script src="assets/js/dashboard-charts.js"></script>
 
 </body>
 
