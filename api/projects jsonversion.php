@@ -2,7 +2,7 @@
 
 /**
  * PROJECTS API ENDPOINT
- * Handles GET (list/existing), POST, PUT, DELETE operations
+ * Handles GET (existing), POST, PUT, DELETE operations
  * Reference: Called by public/assets/js/projects_dt.js and projects-actions.js
  */
 require_once '../config/config.php';
@@ -18,21 +18,16 @@ try {
     $db = new Database();
     $controller = new ProjectController($db->getConnection());
     $method = $_SERVER['REQUEST_METHOD'];
-    $action = $_GET['action'] ?? 'list'; // Default to 'list'
 
     switch ($method) {
-        case 'GET':
-            // CHANGED: Handle list action explicitly
-            if ($action === 'list') {
-                // Fresh data from database (no JSON file needed)
-                require_once '../app/models/Project.php';
-                $projectModel = new Project($db->getConnection());
-                $projects = $projectModel->getAll();
+        case 'GET': // Existing - get all projects
+            $result = $controller->getProjectsJson();
 
-                echo json_encode(['data' => $projects]);
+            if ($result['success']) {
+                echo json_encode(['data' => $result['data']]);
             } else {
-                http_response_code(400);
-                echo json_encode(['error' => 'Invalid action']);
+                http_response_code(500);
+                echo json_encode(['error' => $result['error']]);
             }
             break;
 

@@ -2,11 +2,7 @@ let projectsTable;
 
 $(document).ready(function () {
     projectsTable = $('#projectsTable').DataTable({
-        // CHANGED: Load directly from API instead of JSON file
-        ajax: {
-            url: '../api/projects.php?action=list',
-            dataSrc: 'data'  // API returns {data: [...]}
-        },
+        ajax: 'data/projects.json',
         columns: [
             {
                 data: 'id_project',
@@ -17,7 +13,7 @@ $(document).ready(function () {
                 data: 'firma',
                 render: function (data, type, row) {
                     if (type === 'display') {
-                        return `<a href="#" class="text-decoration-none open-status-modal" style="color: #0a58ca;" data-project-id="${row.id_project}" data-project-name="${row.proiect}" data-project-company="${data}">${data}</a>`;
+                        return `<a href="#" class="  text-decoration-none open-status-modal" style="color: #0a58ca;"  data-project-id="${row.id_project}"  data-project-name="${row.proiect}" data-project-company="${data}">${data}</a>`;
                     }
                     return data;
                 }
@@ -42,7 +38,7 @@ $(document).ready(function () {
                 render: function (data, type, row, meta) {
                     if ((data != "0")) {
                         var a = data;
-                        d = '<a href="https://remedy-web.vodafone.ro/arsys/forms/remedy-ar-lb/PreSales+Process+Optimization/Default+Administrator+View/?eid=000000000' + a + '" target="_blank" class="text-decoration-none" style="color: #0a58ca;">' + a + "</a>";
+                        d = '<a href="https://remedy-web.vodafone.ro/arsys/forms/remedy-ar-lb/PreSales+Process+Optimization/Default+Administrator+View/?eid=000000000' + a + '" target="_blank" class="  text-decoration-none " style="color: #0a58ca;">' + a + "</a>";
                         return d;
                     } else {
                         return data;
@@ -63,65 +59,76 @@ $(document).ready(function () {
                 data: 'create_date',
                 className: 'text-center',
                 render: function (data, type, row) {
-                    if (!data || data === '-') {
-                        return '-';
-                    }
-
-                    // Incoming format is dd-mm-yyyy
-                    const parts = data.split('-');
-                    const day = parseInt(parts[0], 10);
-                    const month = parseInt(parts[1], 10) - 1; // JS months 0-11
-                    const year = parseInt(parts[2], 10);
-                    const date = new Date(year, month, day);
-
-                    if (isNaN(date.getTime())) {
-                        return data;
-                    }
-
+                    // For sorting, return raw data
                     if (type === 'sort' || type === 'type') {
-                        // Return timestamp for proper sorting
-                        return date.getTime();
+                        return data || '';
                     }
 
-                    // Display: 28-Oct-2025
-                    const monthName = date.toLocaleString('en-GB', { month: 'short' });
-                    return `<span style="font-size: 0.8rem;">${day}-${monthName}-${year}</span>`;
-                }
-            },
-
-            {
-                data: 'last_update',
-                className: 'text-center',
-                render: function (data, type, row) {
-
-                       // Handle empty / placeholder
                     if (!data || data === '-') {
                         return '-';
                     }
 
-                    // Expecting dd-mm-yyyy
+                    // Parse dd-mm-yyyy format
                     const parts = data.split('-');
-                    const day = parseInt(parts[0], 10);
-                    const month = parseInt(parts[1], 10) - 1; // JS months 0-11
-                    const year = parseInt(parts[2], 10);
+                    if (parts.length !== 3) {
+                        return `<span style="font-size: 0.8rem;">${data}</span>`;
+                    }
 
-                    const date = new Date(year, month, day);
+                    const day = parts[0];
+                    const monthNum = parseInt(parts[1]) - 1;
+                    const year = parts[2];
 
+                    // Create date object
+                    const date = new Date(year, monthNum, day);
+
+                    // Check if valid
                     if (isNaN(date.getTime())) {
                         return `<span style="font-size: 0.8rem;">${data}</span>`;
                     }
 
-                    // For sorting, return numeric timestamp
-                    if (type === 'sort' || type === 'type') {
-                        return date.getTime();
-                    }
-
-                    // For display, format as dd-MMM-yyyy
+                    // Format as dd-mmm-yyyy
                     const monthName = date.toLocaleString('en-GB', { month: 'short' });
+
                     return `<span style="font-size: 0.8rem;">${day}-${monthName}-${year}</span>`;
                 }
             },
+            {
+                data: 'last_update',
+                className: 'text-center',
+                render: function (data, type, row) {
+                    // For sorting, return raw data
+                    if (type === 'sort' || type === 'type') {
+                        return data || '';
+                    }
 
+                    if (!data || data === '-') {
+                        return '-';
+                    }
+
+                    // Parse dd-mm-yyyy format
+                    const parts = data.split('-');
+                    if (parts.length !== 3) {
+                        return `<span style="font-size: 0.8rem;">${data}</span>`;
+                    }
+
+                    const day = parts[0];
+                    const monthNum = parseInt(parts[1]) - 1;
+                    const year = parts[2];
+
+                    // Create date object
+                    const date = new Date(year, monthNum, day);
+
+                    // Check if valid
+                    if (isNaN(date.getTime())) {
+                        return `<span style="font-size: 0.8rem;">${data}</span>`;
+                    }
+
+                    // Format as dd-mmm-yyyy
+                    const monthName = date.toLocaleString('en-GB', { month: 'short' });
+
+                    return `<span style="font-size: 0.8rem;">${day}-${monthName}-${year}</span>`;
+                }
+            },
             {
                 data: 'status',
                 render: function (data, type, row, meta) {
@@ -156,8 +163,10 @@ $(document).ready(function () {
                 defaultContent: '-',
                 render: function (data) {
 
+                    // If null/empty → return empty string
                     if (!data) return "";
 
+                    // Style based on value
                     if (data === "Presales") {
                         return `<span class="badge rounded-pill text-bg-info">${data}</span>`;
                     }
@@ -171,11 +180,14 @@ $(document).ready(function () {
                 data: 'dl',
                 className: 'text-center',
                 render: function (data, type, row) {
+                    // For sorting, return raw data
                     if (type === 'sort' || type === 'type') return data || '';
 
+                    // Handle empty or closed cases
                     if (!data || data === '-' || data === '' || data === null)
                         return '<span class="badge text-bg-success">Closed</span>';
 
+                    // Try to parse date from dd-mm-yyyy or ISO
                     let dlDate;
                     if (/^\d{2}-\d{2}-\d{4}$/.test(data)) {
                         const [day, month, year] = data.split('-').map(Number);
@@ -184,11 +196,14 @@ $(document).ready(function () {
                         dlDate = new Date(data);
                     }
 
+                    // Invalid date → show dash
                     if (isNaN(dlDate)) return '-';
 
+                    // Check for Unix epoch → Closed
                     if (dlDate.getFullYear() === 1970)
                         return '<span class="badge text-bg-success">Closed</span>';
 
+                    // Compare to today
                     const today = new Date();
                     today.setHours(0, 0, 0, 0);
                     dlDate.setHours(0, 0, 0, 0);
@@ -197,10 +212,11 @@ $(document).ready(function () {
                     const twoDays = 2 * 24 * 60 * 60 * 1000;
                     const formatted = dlDate.toLocaleDateString('en-GB');
 
+                    // Determine badge color
                     const badge =
-                        diff < 0 ? 'danger' :
-                            diff < twoDays ? 'warning' :
-                                'light text-dark';
+                        diff < 0 ? 'danger' :        // Overdue
+                            diff < twoDays ? 'warning' : // Due soon
+                                'light text-dark';           // Future
 
                     return `<span class="badge text-bg-${badge}">${formatted}</span>`;
                 },
@@ -216,22 +232,10 @@ $(document).ready(function () {
                     const tcv = parseFloat(row.tcv_project) || 0;
                     const months = parseFloat(row.contract_duration) || 0;
 
-                    if (tcv > 0 && months > 0) {
-
-                        let aov;
-
-                        if (months <= 12) {
-                            // If duration is 1 to 12 months → do NOT annualize
-                            aov = tcv;
-                        } else {
-                            // If duration > 12 months → convert to annual value
-                            aov = tcv / (months / 12);
-                        }
-
-                        aov = Math.round(aov);
+                    if (months > 0 && tcv > 0) {
+                        const aov = Math.round(tcv / (months / 12));
                         return aov.toLocaleString() + ' €';
                     }
-
                     return '-';
                 },
                 className: 'text-end'
@@ -266,8 +270,8 @@ $(document).ready(function () {
             style: 'single',
             selector: 'tr'
         },
-        dom: '<"row mb-3"<"col-sm-12"r>>' +
-            '<"row"<"col-sm-12"t>>' +
+        dom: '<"row mb-3"<"col-sm-12"r>>' +       // Processing with margin bottom
+            '<"row"<"col-sm-12"t>>' +                      // Table
             '<"row mt-3"<"col-sm-12 col-md-5 d-flex align-items-center"li><"col-sm-12 col-md-7"p>>',
 
         language: {
@@ -289,6 +293,7 @@ $(document).ready(function () {
         const searchValue = this.value;
         projectsTable.search(searchValue).draw();
 
+        // Show/hide clear button
         if (searchValue) {
             $('#clearSearch').show();
         } else {
@@ -320,7 +325,7 @@ $(document).ready(function () {
     // Status filter dropdown
     $('#statusFilter').on('change', function () {
         const selectedStatus = this.value;
-        projectsTable.column(12).search(selectedStatus).draw();
+        projectsTable.column(12).search(selectedStatus).draw();  // Column 12 = Status
     });
 
 
@@ -411,4 +416,7 @@ $(document).ready(function () {
         });
     });
 
+
+
 });
+

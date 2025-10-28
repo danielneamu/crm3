@@ -1,6 +1,7 @@
 let selectedRow = null;
 let isMultiSelectMode = false;
 
+
 $(document).ready(function () {
     // Enable/disable Edit button on row selection
     projectsTable.on('select', function (e, dt, type, indexes) {
@@ -13,22 +14,12 @@ $(document).ready(function () {
         $('#btnEditProject').prop('disabled', true);
     });
 
-    $('#createDate').datepicker({
-        format: 'dd-mm-yyyy',
-        autoclose: true,
-        todayHighlight: true,
-        orientation: 'bottom auto',
-        endDate: new Date(),
-        container: '#projectModal'  // ← Keep this
-    });
-
 
 
     // Add Project
+    // Add Project
     $('#btnAddProject').click(function () {
         $('#projectModalLabel').text('Add Project');
-
-
         $('#projectForm')[0].reset();
         $('#projectId').val('');
         $('#agent').prop('disabled', true).html('<option value="">Select Team First</option>');
@@ -36,23 +27,16 @@ $(document).ready(function () {
         // Re-enable fields
         $('#company').prop('disabled', false);
         $('#team').prop('disabled', false);
-        $('#createDate').prop('disabled', false).prop('readonly', true);
-
+        $('#createDate').prop('disabled', false);
 
         // Remove hidden inputs if they exist
         $('#hiddenCompany, #hiddenTeam, #hiddenAgent').remove();
 
+        // Set today as default date
+        $('#createDate').datepicker('setDate', new Date());
+
         // Set contract duration default to 1 month
         $('#contractDuration').val('1');
-
-        // ✅ Set date value MANUALLY (don't use setDate yet)
-        const today = new Date();
-        const day = String(today.getDate()).padStart(2, '0');
-        const month = String(today.getMonth() + 1).padStart(2, '0');
-        const year = today.getFullYear();
-        $('#createDate').val(`${day}-${month}-${year}`);
-
-        console.log('Date manually set to:', $('#createDate').val());
 
         loadDropdowns();
         $('#projectModal').modal('show');
@@ -91,14 +75,17 @@ $(document).ready(function () {
 
     // Initialize datepicker when modal is shown
     $('#projectModal').on('shown.bs.modal', function () {
-
-        // Only update for Add mode (not Edit)
-        if (!selectedRow && $('#createDate').val()) {
-            // Tell datepicker to update its internal state with the current input value
-            $('#createDate').datepicker('update');
-            console.log('Datepicker updated, value:', $('#createDate').val());
+        // Initialize Bootstrap Datepicker
+        if (!$('#createDate').data('datepicker')) {
+            $('#createDate').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                todayHighlight: true,
+                orientation: 'bottom auto',
+                endDate: new Date() // Can't select future dates
+            });
         }
-        
+
         // Initialize Select2 when modal is shown
         if (!$('#partners').hasClass('select2-hidden-accessible')) {
             $('#partners').select2({
@@ -109,8 +96,6 @@ $(document).ready(function () {
                 width: '100%'
             });
         }
-
-
     });
 
     // Destroy Select2 when Project Modal is hidden
@@ -153,8 +138,8 @@ $(document).ready(function () {
         const formData = new FormData($('#projectForm')[0]);
         const isEdit = $('#projectId').val() !== '';
 
-        // Handle partners explicitly
-        const partners = $('#partners').val() || [];
+        // Handle partners explicitly - IMPORTANT FIX
+        const partners = $('#partners').val() || []; // Get Select2 value (array or null)
 
         // Remove any existing partner entries from FormData
         formData.delete('partners');
@@ -169,9 +154,11 @@ $(document).ready(function () {
             // Send empty string to signal "clear all partners"
             formData.append('partners[]', '');
         }
-
+        
 
         if (isEdit) {
+            formData.delete('createDate_project');
+
             // For PUT, convert FormData to URLSearchParams
             const urlEncodedData = new URLSearchParams(formData).toString();
 
@@ -183,9 +170,18 @@ $(document).ready(function () {
                 success: function (response) {
                     $('#projectModal').modal('hide');
 
-                    // CHANGED: Just reload table immediately (no JSON regeneration)
-                    showToast('Success', 'Project updated successfully', 'success');
-                    projectsTable.ajax.reload(null, false);
+                    $.ajax({
+                        url: '../api/regenerate-json.php',
+                        method: 'GET',
+                        success: function () {
+                            showToast('Success', 'Project updated successfully', 'success');
+                            projectsTable.ajax.reload(null, false);
+                        },
+                        error: function () {
+                            showToast('Warning', 'Project saved but JSON refresh failed', 'error');
+                            setTimeout(() => location.reload(), 1500);
+                        }
+                    });
                 },
                 error: function (xhr) {
                     showToast('Error', 'Failed to save project: ' + xhr.responseText, 'error');
@@ -202,9 +198,18 @@ $(document).ready(function () {
                 success: function (response) {
                     $('#projectModal').modal('hide');
 
-                    // CHANGED: Just reload table immediately (no JSON regeneration)
-                    showToast('Success', 'Project created successfully', 'success');
-                    projectsTable.ajax.reload(null, false);
+                    $.ajax({
+                        url: '../api/regenerate-json.php',
+                        method: 'GET',
+                        success: function () {
+                            showToast('Success', 'Project created successfully', 'success');
+                            projectsTable.ajax.reload(null, false);
+                        },
+                        error: function () {
+                            showToast('Warning', 'Project saved but JSON refresh failed', 'error');
+                            setTimeout(() => location.reload(), 1500);
+                        }
+                    });
                 },
                 error: function (xhr) {
                     showToast('Error', 'Failed to save project: ' + xhr.responseText, 'error');
@@ -213,8 +218,7 @@ $(document).ready(function () {
         }
     });
 
-
-    //* END DOCUMENT READY
+       //* END DOCUMENT READY
 });
 
 // Load dropdowns
@@ -245,6 +249,7 @@ function loadDropdowns(callback) {
 }
 
 // Populate form for editing
+// Populate form for editing
 function populateForm(data) {
     console.log('populateForm data:', data);
 
@@ -267,6 +272,7 @@ function populateForm(data) {
     $('#active').prop('checked', data.on_status == 1);
 
     if (data.create_date && data.create_date !== '-') {
+
         // Force datepicker initialization if not done
         if (!$('#createDate').data('datepicker')) {
             $('#createDate').datepicker({
@@ -275,6 +281,7 @@ function populateForm(data) {
                 todayHighlight: true
             });
         }
+
         // Now set the date
         $('#createDate').datepicker('setDate', data.create_date);
     }
@@ -286,3 +293,4 @@ function populateForm(data) {
         $('#partners').val(partnerIds).trigger('change');
     }
 }
+

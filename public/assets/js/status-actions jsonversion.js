@@ -1,5 +1,5 @@
 let currentProjectId = null;
-let projectCompany = null;
+let projectCompany  = null; 
 
 $(document).ready(function () {
     // Open status modal on company name click
@@ -9,7 +9,7 @@ $(document).ready(function () {
         const projectName = $(this).data('project-name');
         const projectCompany = $(this).data('project-company');
         console.log('Opening status modal for project data:', $(this).data());
-
+        
         $('#statusProjectName').text(projectName);
         $('#statusProjectId').text(currentProjectId);
         $('#statusProjectIdInput').val(currentProjectId);
@@ -50,10 +50,13 @@ $(document).ready(function () {
                 $('#addStatusForm').collapse('hide');
                 loadStatusHistory(currentProjectId);
 
-                // CHANGED: Just reload projects table (no JSON regeneration needed)
-                if (typeof projectsTable !== 'undefined') {
-                    projectsTable.ajax.reload(null, false);
-                }
+                // Regenerate JSON to update main table
+                $.get('../api/regenerate-json.php', function () {
+                    // Reload the projects table to show updated status
+                    if (typeof projectsTable !== 'undefined') {
+                        projectsTable.ajax.reload(null, false);
+                    }
+                });
             },
             error: function (xhr) {
                 alert('Failed to add status: ' + xhr.responseText);
@@ -73,10 +76,12 @@ $(document).ready(function () {
             success: function () {
                 loadStatusHistory(currentProjectId);
 
-                // CHANGED: Just reload projects table (no JSON regeneration needed)
-                if (typeof projectsTable !== 'undefined') {
-                    projectsTable.ajax.reload(null, false);
-                }
+                // Regenerate JSON and reload table
+                $.get('../api/regenerate-json.php', function () {
+                    if (typeof projectsTable !== 'undefined') {
+                        projectsTable.ajax.reload(null, false);
+                    }
+                });
             },
             error: function (xhr) {
                 alert('Failed to delete status: ' + xhr.responseText);
@@ -109,7 +114,7 @@ function loadStatusHistory(projectId) {
                     <td class="text-center"><span class="badge ${statusBadgeClass}">${status.status_name}</span></td>
                     <td class="text-center">${formattedDeadline}</td>
                     <td>${status.responsible_party}</td>
-                    <td>${status.comment || '-'}</td>
+                    <td>${status.comments || '-'}</td>
                     <td class="text-center">
                         <button class="btn btn-sm btn-outline-danger delete-status" data-status-id="${status.id_status}" title="Delete">
                             <i class="bi bi-trash"></i>

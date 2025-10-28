@@ -1,3 +1,15 @@
+# TO DELETE
+Now update .gitignore to remove the JSON file entry:
+Delete /public/data/projects.json file if it exists
+Delete /public/data/ directory if empty
+Delete api/regenerate-json.php (no longer needed)
+Delete all older files:
+    - projects-datatable jsonversion.js
+    - api/projects jsonversion.php
+    - projects-actions jsonversion.js
+    - status-actions jsonversion.js
+    - public/projects jsonversion.php
+
 # Look and feel
 ✅ unifiy the Toasts desing  
 ✅  - optional add progress bar
