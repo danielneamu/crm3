@@ -11,20 +11,20 @@ class AgentController
     public function getAllAgents()
     {
         $sql = "
-        SELECT 
-            a.id_agent,
-            a.nume_agent,
-            a.cod_agent,
-            a.current_team,
-            a.status_agent,
-            COUNT(DISTINCT CASE WHEN p.active_project = 1 THEN p.id_project END) as active_projects,
-            MIN(h.start_date) as member_since
-        FROM agents a
-        LEFT JOIN projects p ON p.agent_project = a.id_agent
-        LEFT JOIN agent_team_history h ON h.agent_id = a.id_agent
-        GROUP BY a.id_agent
-        ORDER BY a.status_agent DESC, a.nume_agent ASC
-    ";
+            SELECT 
+                a.id_agent,
+                a.nume_agent,
+                a.cod_agent,
+                a.current_team,
+                a.status_agent,
+                COUNT(DISTINCT CASE WHEN p.active_project = 1 THEN p.id_project END) as active_projects,
+                MIN(h.start_date) as member_since
+            FROM agents a
+            LEFT JOIN projects p ON p.agent_project = a.id_agent
+            LEFT JOIN agent_team_history h ON h.agent_id = a.id_agent
+            GROUP BY a.id_agent
+            ORDER BY a.status_agent DESC, a.nume_agent ASC
+        ";
 
         $stmt = $this->conn->prepare($sql);
         $stmt->execute();

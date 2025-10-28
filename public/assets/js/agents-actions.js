@@ -100,10 +100,22 @@ function loadTeams(callback) {
     });
 }
 
+
 function showToast(title, message, type) {
     const toast = new bootstrap.Toast(document.getElementById('agentToast'));
+    const icon = $('#toastIcon');
+    const header = $('.toast-header');
+
     $('#toastTitle').text(title);
     $('#toastMessage').text(message);
+
+    if (type === 'success') {
+        icon.removeClass('bi-exclamation-triangle-fill text-danger').addClass('bi-check-circle-fill text-success');
+        header.removeClass('bg-danger').addClass('bg-success bg-opacity-10');
+    } else {
+        icon.removeClass('bi-check-circle-fill text-success').addClass('bi-exclamation-triangle-fill text-danger');
+        header.removeClass('bg-success').addClass('bg-danger bg-opacity-10');
+    }
     toast.show();
 }
 

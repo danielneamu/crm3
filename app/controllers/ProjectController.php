@@ -68,7 +68,6 @@ class ProjectController
         }
     }
 
-
     public function updateProject($id, $data)
     {
         try {
@@ -91,7 +90,6 @@ class ProjectController
                 eft_case = ?,
                 sfdc_opp = ?,
                 active_project = ?,
-                createDate_project = ?,
                 comment_project = ?
             WHERE id_project = ?
         ");
@@ -108,7 +106,6 @@ class ProjectController
                 $data['eft_case'] ?? null,
                 $data['sfdc_opp'] ?? null,
                 isset($data['active_project']) ? 1 : 0,
-                $createDate,
                 $data['comment_project'] ?? null,
                 $id
             ]);
@@ -126,7 +123,6 @@ class ProjectController
             return ['success' => false, 'error' => $e->getMessage()];
         }
     }
-
 
     private function regenerateJson()
     {
@@ -159,9 +155,6 @@ class ProjectController
         }
     }
 
-
-
-
     public function deleteProject($id)
     {
         try {
@@ -178,10 +171,10 @@ class ProjectController
     {
         // First, deactivate all existing partners for this project
         $stmt = $this->conn->prepare("
-        UPDATE project_partners 
-        SET is_active = 0 
-        WHERE project_id = ?
-    ");
+            UPDATE project_partners 
+            SET is_active = 0 
+            WHERE project_id = ?
+        ");
         $stmt->execute([$projectId]);
 
         // If no partners selected, we're done
@@ -217,7 +210,6 @@ class ProjectController
         }
     }
 
-
     private function addProjectComments($projectId, $comments)
     {
         $stmt = $this->conn->prepare("INSERT INTO project_comments (project_id, comment_text, created_at) VALUES (?, ?, ?)");
@@ -236,7 +228,6 @@ class ProjectController
             }
         }
     }
-
 
     // Keep your existing getProjectsJson() method
     public function generateJson()

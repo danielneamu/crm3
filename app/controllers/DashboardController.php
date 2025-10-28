@@ -241,13 +241,13 @@ class DashboardController
     public function getMonthlyNewProjects()
     {
         $stmt = $this->conn->query("
-        SELECT 
-            DATE_FORMAT(createDate_project, '%Y-%m') as month,
-            COUNT(*) as count
-        FROM projects
-        GROUP BY DATE_FORMAT(createDate_project, '%Y-%m')
-        ORDER BY month ASC
-    ");
+            SELECT 
+                DATE_FORMAT(createDate_project, '%Y-%m') as month,
+                COUNT(*) as count
+            FROM projects
+            GROUP BY DATE_FORMAT(createDate_project, '%Y-%m')
+            ORDER BY month ASC
+        ");
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
@@ -259,16 +259,19 @@ class DashboardController
     public function getMonthlyCompletedProjects()
     {
         $stmt = $this->conn->query("
-        SELECT 
-            DATE_FORMAT(psh.changed_at, '%Y-%m') as month,
-            COUNT(DISTINCT psh.project_id) as count
-        FROM project_status_history psh
-        WHERE psh.status_name IN ('Contract Signed', 'Completed', 'No Solution', 'Offer Refused')
-        GROUP BY DATE_FORMAT(psh.changed_at, '%Y-%m')
-        ORDER BY month ASC
-    ");
+            SELECT 
+                DATE_FORMAT(psh.changed_at, '%Y-%m') AS month,
+                COUNT(DISTINCT psh.project_id) AS count
+            FROM project_status_history psh
+            WHERE psh.status_name IN ('Contract Signed', 'Completed', 'No Solution', 'Offer Refused')
+            GROUP BY DATE_FORMAT(psh.changed_at, '%Y-%m')
+            ORDER BY month ASC
+        ");
+
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+
+
 
     /**
      * CHART: Monthly Status History (Full Width)
@@ -278,14 +281,14 @@ class DashboardController
     public function getMonthlySignedProjects()
     {
         $stmt = $this->conn->query("
-        SELECT 
-            DATE_FORMAT(psh.changed_at, '%Y-%m') as month,
-            COUNT(DISTINCT psh.project_id) as count
-        FROM project_status_history psh
-        WHERE psh.status_name = 'Contract Signed'
-        GROUP BY DATE_FORMAT(psh.changed_at, '%Y-%m')
-        ORDER BY month ASC
-    ");
+            SELECT 
+                DATE_FORMAT(psh.changed_at, '%Y-%m') as month,
+                COUNT(DISTINCT psh.project_id) as count
+            FROM project_status_history psh
+            WHERE psh.status_name = 'Contract Signed'
+            GROUP BY DATE_FORMAT(psh.changed_at, '%Y-%m')
+            ORDER BY month ASC
+        ");
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
@@ -322,27 +325,27 @@ class DashboardController
 
         // Query for current FY (Apr–now)
         $stmtCurrent = $this->conn->prepare("
-        SELECT 
-            MONTH(createDate_project) AS month,
-            COUNT(*) AS count
-        FROM projects
-        WHERE createDate_project BETWEEN ? AND ?
-        GROUP BY MONTH(createDate_project)
-        ORDER BY MONTH(createDate_project)
-    ");
+            SELECT 
+                MONTH(createDate_project) AS month,
+                COUNT(*) AS count
+            FROM projects
+            WHERE createDate_project BETWEEN ? AND ?
+            GROUP BY MONTH(createDate_project)
+            ORDER BY MONTH(createDate_project)
+        ");
         $stmtCurrent->execute([$currentFYStart, $currentFYEnd]);
         $currentFY = $stmtCurrent->fetchAll(PDO::FETCH_ASSOC);
 
         // Query for previous FY (Apr–Mar)
         $stmtPrevious = $this->conn->prepare("
-        SELECT 
-            MONTH(createDate_project) AS month,
-            COUNT(*) AS count
-        FROM projects
-        WHERE createDate_project BETWEEN ? AND ?
-        GROUP BY MONTH(createDate_project)
-        ORDER BY MONTH(createDate_project)
-    ");
+            SELECT 
+                MONTH(createDate_project) AS month,
+                COUNT(*) AS count
+            FROM projects
+            WHERE createDate_project BETWEEN ? AND ?
+            GROUP BY MONTH(createDate_project)
+            ORDER BY MONTH(createDate_project)
+        ");
         $stmtPrevious->execute([$previousFYStart, $previousFYEnd]);
         $previousFY = $stmtPrevious->fetchAll(PDO::FETCH_ASSOC);
 
@@ -353,7 +356,6 @@ class DashboardController
             'previous_fy_label' => $previousFYLabel
         ];
     }
-
 
 
     /**
@@ -518,15 +520,15 @@ class DashboardController
         $fiscalYearStart = ($currentMonth < 4) ? ($currentYear - 1) . '-04-01' : $currentYear . '-04-01';
 
         $stmt = $this->conn->prepare("
-        SELECT 
-            IFNULL(NULLIF(a.current_team, ''), 'Unassigned') AS team,
-            COUNT(p.id_project) AS count
-        FROM projects p
-        LEFT JOIN agents a ON p.agent_project = a.id_agent
-        WHERE p.createDate_project >= ?
-        GROUP BY a.current_team
-        ORDER BY count DESC
-    ");
+            SELECT 
+                IFNULL(NULLIF(a.current_team, ''), 'Unassigned') AS team,
+                COUNT(p.id_project) AS count
+            FROM projects p
+            LEFT JOIN agents a ON p.agent_project = a.id_agent
+            WHERE p.createDate_project >= ?
+            GROUP BY a.current_team
+            ORDER BY count DESC
+        ");
         $stmt->execute([$fiscalYearStart]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
@@ -558,32 +560,32 @@ class DashboardController
 
         // Final SQL Query (uses latest id_status)
         $sql = "
-        SELECT 
-            a.nume_agent AS agent,
-            SUM(latest.status_name = 'Contract Signed') AS contract_signed,
-            SUM(latest.status_name = 'Completed') AS completed,
-            SUM(latest.status_name IN ('New', 'Design', 'Qualifying', 'Pending')) AS in_progress,
-            SUM(latest.status_name IN ('Cancelled', 'No Solution', 'Offer Refused')) AS cancelled,
-            COUNT(p.id_project) AS total_projects
-        FROM projects p
-        JOIN agents a 
-            ON p.agent_project = a.id_agent 
-            AND a.status_agent = 1
-        LEFT JOIN (
-            SELECT h1.project_id, h1.status_name
-            FROM project_status_history h1
-            INNER JOIN (
-                SELECT project_id, MAX(id_status) AS last_status_id
-                FROM project_status_history
-                GROUP BY project_id
-            ) h2 ON h1.id_status = h2.last_status_id
-        ) latest 
-            ON p.id_project = latest.project_id
+            SELECT 
+                a.nume_agent AS agent,
+                SUM(latest.status_name = 'Contract Signed') AS contract_signed,
+                SUM(latest.status_name = 'Completed') AS completed,
+                SUM(latest.status_name IN ('New', 'Design', 'Qualifying', 'Pending')) AS in_progress,
+                SUM(latest.status_name IN ('Cancelled', 'No Solution', 'Offer Refused')) AS cancelled,
+                COUNT(p.id_project) AS total_projects
+            FROM projects p
+            JOIN agents a 
+                ON p.agent_project = a.id_agent 
+                AND a.status_agent = 1
+            LEFT JOIN (
+                SELECT h1.project_id, h1.status_name
+                FROM project_status_history h1
+                INNER JOIN (
+                    SELECT project_id, MAX(id_status) AS last_status_id
+                    FROM project_status_history
+                    GROUP BY project_id
+                ) h2 ON h1.id_status = h2.last_status_id
+            ) latest 
+                ON p.id_project = latest.project_id
         $where
-        GROUP BY a.nume_agent
-        ORDER BY total_projects DESC
-        LIMIT 10
-    ";
+            GROUP BY a.nume_agent
+            ORDER BY total_projects DESC
+            LIMIT 10
+        ";
 
         $stmt = $this->conn->prepare($sql);
         $stmt->execute($params);

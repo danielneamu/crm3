@@ -1,21 +1,4 @@
-// Toast Notification
-function showToast(message, type = 'success') {
-    const toast = document.getElementById('globalToast');
-    const toastBody = document.getElementById('toastMessage');
 
-    const colors = {
-        success: 'bg-success text-white',
-        error: 'bg-danger text-white',
-        warning: 'bg-warning text-dark',
-        info: 'bg-info text-white'
-    };
-
-    toast.className = `toast align-items-center border-0 ${colors[type] || colors.success}`;
-    toastBody.textContent = message;
-
-    const bsToast = new bootstrap.Toast(toast, { delay: 3000 });
-    bsToast.show();
-}
 
 $(document).ready(function () {
     // Add Company
@@ -85,13 +68,13 @@ function saveCompany() {
             if (response.success) {
                 $('#companyModal').modal('hide');
                 companiesTable.ajax.reload();
-                showToast('Company saved successfully!', 'success');
+                showToast('Success', 'Company saved successfully!', 'success');
             } else {
-                showToast('Error: ' + (response.error || 'Unknown error'), 'error');
+                showToast('Error: ',  (response.error || 'Unknown error'), 'error');
             }
         },
         error: function () {
-            showToast('Failed to save company', 'error');
+            showToast('Errorr','Failed to save company', 'error');
         }
     });
 }
@@ -103,13 +86,96 @@ function deleteCompany(companyId) {
         success: function (response) {
             if (response.success) {
                 companiesTable.ajax.reload();
-                showToast('Company deleted', 'success');
+                showToast('Success','Company deleted', 'success');
             } else {
-                showToast('Error: ' + response.error, 'error');
+                showToast('Error: ', response.error, 'error');
             }
         },
         error: function () {
-            showToast('Failed to delete company', 'error');
+            showToast('Error', 'Failed to delete company', 'error');
         }
     });
+}
+
+
+/**
+ * Display a global toast notification with progress bar
+ * @param {string} title - Toast title
+ * @param {string} message - Toast message body
+ * @param {string} type - 'success', 'error', 'warning', or 'info'
+ * @param {number} delay - Auto-hide delay in ms (default: 5000)
+ */
+function showToast(title, message, type = 'success', delay = 5000) {
+    const toastEl = document.getElementById('globalToast');
+    const icon = document.getElementById('toastIcon');
+    const header = document.querySelector('#globalToast .toast-header');
+    const titleEl = document.getElementById('toastTitle');
+    const messageEl = document.getElementById('toastMessage');
+    const progressBar = document.getElementById('toastProgressBar');
+
+    // Update content
+    titleEl.textContent = title;
+    messageEl.textContent = message;
+
+    // Toast type configurations
+    const types = {
+        success: {
+            icon: 'bi-check-circle-fill',
+            iconColor: 'text-success',
+            headerBg: 'bg-success',
+            progressColor: '#198754'
+        },
+        error: {
+            icon: 'bi-x-circle-fill',
+            iconColor: 'text-danger',
+            headerBg: 'bg-danger',
+            progressColor: '#dc3545'
+        },
+        warning: {
+            icon: 'bi-exclamation-triangle-fill',
+            iconColor: 'text-warning',
+            headerBg: 'bg-warning',
+            progressColor: '#ffc107'
+        },
+        info: {
+            icon: 'bi-info-circle-fill',
+            iconColor: 'text-info',
+            headerBg: 'bg-info',
+            progressColor: '#0dcaf0'
+        }
+    };
+
+    const config = types[type] || types.success;
+
+    // Apply styling
+    icon.className = `bi ${config.icon} ${config.iconColor} me-2`;
+    header.className = `toast-header ${config.headerBg} bg-opacity-10`;
+    progressBar.style.backgroundColor = config.progressColor;
+
+    // Reset progress bar
+    progressBar.style.transition = 'none';
+    progressBar.style.width = '100%';
+
+    // Force browser reflow
+    progressBar.offsetHeight;
+
+    // Start animation after a tiny delay
+    setTimeout(() => {
+        progressBar.style.transition = `width ${delay}ms linear`;
+        progressBar.style.width = '0%';
+    }, 10);
+
+    // Show toast
+    const toast = new bootstrap.Toast(toastEl, {
+        autohide: true,
+        delay: delay
+    });
+
+    toast.show();
+
+    // Reset on hide
+    toastEl.addEventListener('hidden.bs.toast', () => {
+        progressBar.style.transition = 'none';
+        progressBar.style.width = '100%';
+    }, { once: true });
 }

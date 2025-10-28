@@ -157,6 +157,8 @@ $(document).ready(function () {
         
 
         if (isEdit) {
+            formData.delete('createDate_project');
+
             // For PUT, convert FormData to URLSearchParams
             const urlEncodedData = new URLSearchParams(formData).toString();
 
@@ -291,7 +293,18 @@ function populateForm(data) {
     $('#sfdc').val(data.sfdc);
     $('#active').prop('checked', data.on_status == 1);
 
-    if (data.create_date) {
+    if (data.create_date && data.create_date !== '-') {
+
+        // Force datepicker initialization if not done
+        if (!$('#createDate').data('datepicker')) {
+            $('#createDate').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                todayHighlight: true
+            });
+        }
+
+        // Now set the date
         $('#createDate').datepicker('setDate', data.create_date);
     }
 

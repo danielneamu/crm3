@@ -106,7 +106,7 @@
                         </h6>
                         <div class="row g-2">
                             <div class="col-md-2">
-                                <label class="form-label small">PT</label>
+                                <label class="form-label small">EFT</label>
                                 <input type="text" class="form-control tall-input" id="pt" name="eft_command">
                             </div>
                             <div class="col-md-2">
@@ -114,7 +114,7 @@
                                 <input type="text" class="form-control tall-input" id="sd" name="solution_dev_number">
                             </div>
                             <div class="col-md-2">
-                                <label class="form-label small">EFT</label>
+                                <label class="form-label small">Caz EFT (PT)</label>
                                 <input type="text" class="form-control tall-input" id="eft" name="eft_case">
                             </div>
                             <div class="col-md-3">
