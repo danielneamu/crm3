@@ -272,7 +272,7 @@ function loadDropdowns(callback) {
 
 // Populate form for editing
 // Populate form for editing
-function populateForm(data, isEditMode = false) {
+function populateForm(data) {
     console.log('populateForm data:', data);
 
     $('#projectId').val(data.id_project);
@@ -293,31 +293,19 @@ function populateForm(data, isEditMode = false) {
     $('#sfdc').val(data.sfdc);
     $('#active').prop('checked', data.on_status == 1);
 
-    // Handle Create Date - FIXED VERSION
     if (data.create_date && data.create_date !== '-') {
-        if (isEditMode) {
-            // In edit mode, just set the raw value (dd-mm-yyyy)
-            // Don't use datepicker because it will be destroyed
-            $('#createDate').val(data.create_date);
-        } else {
-            // In add/view mode, use datepicker
-            const parts = data.create_date.split('-');
-            if (parts.length === 3) {
-                const [day, month, year] = parts;
-                const dateObj = new Date(year, parseInt(month) - 1, day);
-                
-                if (!isNaN(dateObj.getTime())) {
-                    if ($('#createDate').data('datepicker')) {
-                        $('#createDate').datepicker('setDate', dateObj);
-                    } else {
-                        $('#createDate').val(data.create_date);
-                    }
-                } else {
-                    console.warn('Invalid date:', data.create_date);
-                    $('#createDate').val(data.create_date);
-                }
-            }
+
+        // Force datepicker initialization if not done
+        if (!$('#createDate').data('datepicker')) {
+            $('#createDate').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                todayHighlight: true
+            });
         }
+
+        // Now set the date
+        $('#createDate').datepicker('setDate', data.create_date);
     }
 
     $('#commentProject').val(data.comments || '');
