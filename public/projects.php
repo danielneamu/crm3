@@ -97,11 +97,11 @@ $controller->generateJson();
                     <th>CUI</th>
                     <th>Agent</th>
                     <th>Team</th> <!-- Add this - will be hidden by JS -->
-                    <th>EFT</th>
-                    <th>SD</th>
                     <th>Caz PT</th>
+                    <th>SD</th>
+                    <th>EFT</th>
                     <th>SFDC</th>
-                    <th>Create Date</th>
+                    <th>Create Date</th>https://app.danielneamu.ro/crm/projectsjs.php
                     <th>LastUpDate</th>
                     <th>Status</th>
                     <th>Assigned</th>
