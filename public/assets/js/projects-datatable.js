@@ -27,7 +27,7 @@ $(document).ready(function () {
                 searchable: true
             },
             {
-                data: 'pt',
+                data: 'eft',
                 defaultContent: '-',
                 className: 'text-center'
             },
@@ -46,7 +46,7 @@ $(document).ready(function () {
                 },
             },
             {
-                data: 'eft',
+                data: 'pt',
                 defaultContent: '-',
                 className: 'text-center'
             },

@@ -97,9 +97,9 @@ $controller->generateJson();
                     <th>CUI</th>
                     <th>Agent</th>
                     <th>Team</th> <!-- Add this - will be hidden by JS -->
-                    <th>PT</th>
-                    <th>SD</th>
                     <th>EFT</th>
+                    <th>SD</th>
+                    <th>Caz PT</th>
                     <th>SFDC</th>
                     <th>Create Date</th>
                     <th>LastUpDate</th>
