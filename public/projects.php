@@ -101,7 +101,7 @@ $controller->generateJson();
                     <th>SD</th>
                     <th>EFT</th>
                     <th>SFDC</th>
-                    <th>Create Date</th>https://app.danielneamu.ro/crm/projectsjs.php
+                    <th>Create Date</th>
                     <th>LastUpDate</th>
                     <th>Status</th>
                     <th>Assigned</th>
