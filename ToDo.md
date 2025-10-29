@@ -10,6 +10,8 @@ Delete all older files:
     - status-actions jsonversion.js
     - public/projects jsonversion.php
 
+try to use native Bootstrap Datepicker in AddProject
+
 # Look and feel
 ✅ unifiy the Toasts desing  
 ✅  - optional add progress bar

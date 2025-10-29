@@ -16,9 +16,17 @@ class ProjectController
         try {
             $this->conn->beginTransaction();
 
-            $createDate = !empty($data['createDate_project'])
-                ? date('Y-m-d', strtotime(str_replace('-', '/', $data['createDate_project'])))
-                : date('Y-m-d');
+            // NEW (fixed) - converting date send from  from d-m-Y to Y-m-d, projects-actions.js ->date
+            if (!empty($data['createDate_project'])) {
+                try {
+                    $dt = DateTime::createFromFormat('d-m-Y', $data['createDate_project']);
+                    $createDate = $dt ? $dt->format('Y-m-d') : date('Y-m-d');
+                } catch (Exception $e) {
+                    $createDate = date('Y-m-d');
+                }
+            } else {
+                $createDate = date('Y-m-d');
+            }
 
             $stmt = $this->conn->prepare("
             INSERT INTO projects (
