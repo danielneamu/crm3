@@ -11,19 +11,31 @@ $(document).ready(function () {
             {
                 data: 'id_project',
                 width: '60px',
-                className: 'text-center'
+                className: 'text-center',
+                render: function (data) {
+                    return data ? `<span style="font-family: monospace; font-size: .85rem;">${data}</span>` : '-';
+                }
             },
             {
                 data: 'firma',
                 render: function (data, type, row) {
                     if (type === 'display') {
-                        return `<a href="#" class="text-decoration-none open-status-modal" style="color: #0a58ca;" data-project-id="${row.id_project}" data-project-name="${row.proiect}" data-project-company="${data}">${data}</a>`;
+                        return `<a href="#" class="text-decoration-none open-status-modal" style="font-size:.95rem;" color: #0a58ca;" data-project-id="${row.id_project}" data-project-name="${row.proiect}" data-project-company="${data}">${data}</a>`;
                     }
                     return data;
                 }
             },
-            { data: 'proiect' },
-            { data: 'cui' },
+            { data: 'proiect',
+                render: function (data) {
+                    return data ? `<span style="font-size: .95rem;">${data}</span>` : '-';
+                }
+            },
+            {
+                data: 'cui',
+                render: function (data) {
+                    return data ? `<span data-copy="${data}" title="Click to copy" style="font-family: monospace; font-size: 0.85rem;" class="text-muted">${data}</span>` : '-';
+                }
+            },
             { data: 'agent' },
             {
                 data: 'team',
@@ -33,31 +45,40 @@ $(document).ready(function () {
             {
                 data: 'pt',
                 defaultContent: '-',
-                className: 'text-center'
+                className: 'text-start',
+                render: function (data) {
+                    return data ? `<span data-copy="${data}" title="Click to copy" style="font-family: monospace; font-size: .95rem;" class="text-muted">${data}</span>` : '-';
+                }
             },
             {
                 data: 'sd',
                 defaultContent: '-',
-                className: 'text-center',
+                className: 'text-start',
                 render: function (data, type, row, meta) {
                     if ((data != "0")) {
                         var a = data;
-                        d = '<a href="https://remedy-web.vodafone.ro/arsys/forms/remedy-ar-lb/PreSales+Process+Optimization/Default+Administrator+View/?eid=000000000' + a + '" target="_blank" class="text-decoration-none" style="color: #0a58ca;">' + a + "</a>";
+                        d = '<a href="https://remedy-web.vodafone.ro/arsys/forms/remedy-ar-lb/PreSales+Process+Optimization/Default+Administrator+View/?eid=000000000' + a + '" target="_blank" class="text-decoration-none" style="font-family: monospace; font-size: .95rem; color: #0a58ca;">' + a + "</a>";
                         return d;
                     } else {
-                        return data;
+                        return `<span style="font-family: monospace; font-size: .95rem;">-</span>`;
                     }
                 },
             },
             {
                 data: 'eft',
                 defaultContent: '-',
-                className: 'text-center'
+                className: 'text-start',
+                render: function (data) {
+                    return data ? `<span data-copy="${data}" title="Click to copy" style="font-family: monospace; font-size: .95rem;">${data}</span>` : '-';
+                }
             },
             {
                 data: 'sfdc',
                 defaultContent: '-',
-                className: 'text-center'
+                className: 'text-start',
+                render: function (data) {
+                    return data ? `<span data-copy="${data}" title="Click to copy" style="font-family: monospace; font-size: .95rem;">${data}</span>` : '-';
+                }
             },
             {
                 data: 'create_date',
@@ -94,7 +115,7 @@ $(document).ready(function () {
                 className: 'text-center',
                 render: function (data, type, row) {
 
-                       // Handle empty / placeholder
+                    // Handle empty / placeholder
                     if (!data || data === '-') {
                         return '-';
                     }
@@ -129,21 +150,21 @@ $(document).ready(function () {
                     if (b == "New") {
                         d = '<span class="badge rounded-pill text-bg-secondary">' + b + "</span>";
                     } else if (b == "Qualifying") {
-                        d = '<span class="badge rounded-pill text-bg-info">' + b + "</span>";
+                        d = '<span class="badge rounded-pill bg-info-subtle text-bg-info fw-normal">' + b + "</span>";
                     } else if (b == "Design") {
-                        d = '<span class="badge roudned-pill text-bg-primary">' + b + "</span>";
+                        d = '<span class="badge roudned-pill bg-primary fw-bold">' + b + "</span>";
                     } else if (b == "Completed") {
-                        d = '<span class="badge rounded-pill text-bg-warning">' + b + "</span>";
+                        d = '<span class="badge rounded-pill bg-warning-subtle text-warning-emphasis fw-normal">' + b + "</span>";
                     } else if (b == "Pending") {
                         d = '<span class="badge rounded-pill text-bg-dark">' + b + "</span>";
                     } else if (b == "Contract Signed") {
-                        d = '<span class="badge rounded-pill text-bg-success">' + b + "</span>";
+                        d = '<span class="badge rounded-pill bg-success-subtle text-success-emphasis">' + b + "</span>";
                     } else if (
                         b == "No Solution" ||
                         b == "Offer Refused" ||
                         b == "Cancelled"
                     ) {
-                        d = '<span class="badge rounded-pill text-bg-danger">' + b + "</span>";
+                        d = '<span class="badge rounded-pill bg-dark-subtle text-secondary">' + b + "</span>";
                     } else {
                         d = b;
                     }
@@ -159,10 +180,13 @@ $(document).ready(function () {
                     if (!data) return "";
 
                     if (data === "Presales") {
-                        return `<span class="badge rounded-pill text-bg-info">${data}</span>`;
+                        return `<span class="badge rounded-pill text-bg-info fw-normal border border-danger">${data}</span>`;
+                    }
+                    else if (data === "Engineer" || data === "Partner") {
+                        return `<span class="badge rounded-pill bg-warning-subtle text-dark fw-normal border border-success">${data}</span>`;
                     }
 
-                    return `<span class="badge rounded-pill text-bg-light">${data}</span>`;
+                    return `<span class="badge rounded-pill text-bg-light fw-normal">${data}</span>`;
                 }
 
 
@@ -174,7 +198,7 @@ $(document).ready(function () {
                     if (type === 'sort' || type === 'type') return data || '';
 
                     if (!data || data === '-' || data === '' || data === null)
-                        return '<span class="badge text-bg-success">Closed</span>';
+                        return '<span class="badge rounded-pill bg-success-subtle text-success-emphasis ">Closed</span>';
 
                     let dlDate;
                     if (/^\d{2}-\d{2}-\d{4}$/.test(data)) {
@@ -187,7 +211,7 @@ $(document).ready(function () {
                     if (isNaN(dlDate)) return '-';
 
                     if (dlDate.getFullYear() === 1970)
-                        return '<span class="badge text-bg-success">Closed</span>';
+                        return '<span class="badge rounded-pill bg-success-subtle text-success-emphasis">Closed</span>';
 
                     const today = new Date();
                     today.setHours(0, 0, 0, 0);
@@ -202,7 +226,7 @@ $(document).ready(function () {
                             diff < twoDays ? 'warning' :
                                 'light text-dark';
 
-                    return `<span class="badge text-bg-${badge}">${formatted}</span>`;
+                    return `<span class="badge rounded-pill bg-${badge}-subtle text-${badge}-emphasis fw-normal">${formatted}</span>`;
                 },
                 defaultContent: '-'
             },
@@ -232,7 +256,7 @@ $(document).ready(function () {
                         return aov.toLocaleString() + ' €';
                     }
 
-                    return '-';
+                    return '0 €';
                 },
                 className: 'text-end'
             },
@@ -410,5 +434,6 @@ $(document).ready(function () {
             $('#statusFilter').append(`<option value="${status}">${status}</option>`);
         });
     });
+
 
 });

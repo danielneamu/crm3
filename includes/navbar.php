@@ -8,11 +8,11 @@
     }
 
     .navbar-nav .nav-link:hover {
-        background-color: rgba(255, 255, 255, 0.1);
+        background-color: rgba(255, 255, 255, 0.6);
     }
 
     .navbar-nav .nav-link.active {
-        background-color: rgba(255, 255, 255, 0.2);
+        background-color: rgba(255, 255, 255, 0.8);
         font-weight: 600;
     }
 
@@ -134,7 +134,17 @@
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" href="partners.php">
-                        <i class="bi bi-handshake me-1"></i>Partners
+                        <i class="bi bi-person-vcard me-1"></i>Partners
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="reports.php">
+                        <i class="bi bi-file-earmark-richtext me-1"></i>Reports
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="tools.php">
+                        <i class="bi bi-tools me-1"></i>Tools
                     </a>
                 </li>
 
@@ -189,7 +199,3 @@
 </nav>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
-
-
-
