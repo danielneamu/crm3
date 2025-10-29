@@ -186,7 +186,7 @@ $(document).ready(function () {
                         return `<span class="badge rounded-pill bg-warning-subtle text-dark fw-normal border border-success">${data}</span>`;
                     }
 
-                    return `<span class="badge rounded-pill text-bg-light fw-normal">${data}</span>`;
+                    return `<span class="badge rounded-pill text-bg-light fw-normal border primary-border">${data}</span>`;
                 }
 
 
