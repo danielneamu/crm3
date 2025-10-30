@@ -136,15 +136,15 @@ function formatDate(dateString) {
 // Get badge color based on status
 function getStatusBadgeClass(status) {
     const statusColors = {
-        'New': 'bg-primary',
+        'New': 'bg-secondary',
         'Qualifying': 'bg-info',
-        'Design': 'bg-warning',
-        'Completed': 'bg-success',
-        'Pending': 'bg-secondary',
+        'Design': 'bg-primary',
+        'Completed': 'bg-warning',
+        'Pending': 'bg-dark',
         'Contract Signed': 'bg-success',
         'No Solution': 'bg-danger',
         'Offer Refused': 'bg-danger',
-        'Cancelled': 'bg-dark'
+        'Cancelled': 'bg-danger'
     };
     return statusColors[status] || 'bg-info';
 }

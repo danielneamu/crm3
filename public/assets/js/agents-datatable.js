@@ -65,7 +65,7 @@ $(document).ready(function () {
             emptyTable: "No agents available",
             processing: '<div class="modern-dt-processing"><div class="modern-spinner"></div><span>Processing...</span></div>'
 
-        },    
+        },
     });
 
     loadTeamsFilter();

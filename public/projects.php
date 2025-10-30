@@ -163,7 +163,22 @@ $controller->generateJson();
     <!-- Search Focus Shortcut -->
     <?php require_once '../includes/components/search-focus/search-focus.php'; ?>
 
+    <!-- Row Coloring Toggle Extension -->
+   <!-- Initialize after DataTable is created -->
+    <?php require_once '../includes/components/row-coloring-toggle/row-coloring-toggle.php'; ?>
+    <script>
+        $(document).ready(function() {
+            // After your table is initialized, call:
+            initRowColoringToggle('projectsTable', {
+                'Contract Signed': 'table-success',
+                'Design': 'table-primary',
+                'Pending': 'table-warning',
+                'Cancelled': 'table-danger'
+            });
+        });
+    </script>
+
+
 
 </body>
-
 </html>

@@ -305,8 +305,10 @@ $(document).ready(function () {
             processing: '<div class="modern-dt-processing"><div class="modern-spinner"></div><span>Processing...</span></div>'
 
         },
-        processing: true
+        processing: true,
+
     });
+    
 
     // Connect custom search input to DataTable
     $('#projectSearch').on('keyup', function () {
