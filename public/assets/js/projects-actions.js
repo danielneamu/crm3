@@ -98,7 +98,7 @@ $(document).ready(function () {
             $('#createDate').datepicker('update');
             console.log('Datepicker updated, value:', $('#createDate').val());
         }
-        
+
         // Initialize Select2 when modal is shown
         if (!$('#partners').hasClass('select2-hidden-accessible')) {
             $('#partners').select2({
@@ -109,7 +109,6 @@ $(document).ready(function () {
                 width: '100%'
             });
         }
-
 
     });
 

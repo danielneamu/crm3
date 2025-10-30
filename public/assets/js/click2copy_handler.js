@@ -2,6 +2,7 @@
  * GENERIC COPY-TO-CLIPBOARD HANDLER
  * Reusable across entire application
  * Place in: public/assets/js/copy-handler.js
+ * Called via: <script src="public/assets/js/copy-handler.js"></script> from projects.php
  */
 
 $(document).ready(function () {

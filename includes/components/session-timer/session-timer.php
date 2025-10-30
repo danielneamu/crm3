@@ -1,5 +1,4 @@
 <?php
-
 /**
  * Session Timer Component
  * Shows actual time remaining until PHP session expires
@@ -17,12 +16,16 @@ $sessionLifetime = ini_get('session.gc_maxlifetime');
 $sessionCreated = $_SESSION['session_created'];
 $sessionExpires = $sessionCreated + $sessionLifetime;
 $timeRemaining = $sessionExpires - time();
+
+$timeSinceRegen = isset($_SESSION['last_regeneration']) ? time() - $_SESSION['last_regeneration'] : 0;
+
 ?>
 
 <!-- Session Timer HTML -->
 <div id="sessionTimer" class="session-timer">
     <i class="bi bi-clock-history"></i>
     <span id="sessionCountdown">--:--</span>
+    <span id="regenTimer"></span>
 </div>
 
 <!-- Session Timer Styles & Script (Self-Contained) -->
@@ -105,45 +108,25 @@ $timeRemaining = $sessionExpires - time();
 </style>
 
 <script>
-    /**
-     * Session Timer - Shows time until actual session expiry
-     */
     (function() {
         'use strict';
 
-        // Get actual server-side time remaining (in seconds)
         let remainingSeconds = <?= max(0, $timeRemaining) ?>;
+        let sinceRegenSeconds = <?= max(0, $timeSinceRegen) ?>;
 
-        const WARNING_THRESHOLD = 10 * 60;
-        const CRITICAL_THRESHOLD = 2 * 60;
+        const WARNING_THRESHOLD = 10 * 60; // 10 min
+        const CRITICAL_THRESHOLD = 2 * 60; // 2 min
 
-        let timerElement = null;
-        let timerContainer = null;
+        const timerElement = document.getElementById('sessionCountdown');
+        let regenElement = document.getElementById('regenCountdown');
 
-        function initTimer() {
-            timerElement = document.getElementById('sessionCountdown');
-            timerContainer = document.getElementById('sessionTimer');
-
-            if (!timerElement || !timerContainer) {
-                console.warn('Session timer elements not found');
-                return;
-            }
-
-            // Update every second
-            setInterval(updateTimer, 1000);
-            updateTimer();
-        }
-
-        function updateTimer() {
-            remainingSeconds--;
-
-            if (remainingSeconds <= 0) {
-                handleExpired();
-                return;
-            }
-
-            timerElement.textContent = formatTime(remainingSeconds);
-            updateStyle(remainingSeconds);
+        if (!regenElement) {
+            // Add a small span below the main timer for regen
+            regenElement = document.createElement('div');
+            regenElement.id = 'regenCountdown';
+            regenElement.style.fontSize = '12px';
+            regenElement.style.color = '#6c757d';
+            timerElement.parentNode.appendChild(regenElement);
         }
 
         function formatTime(seconds) {
@@ -151,39 +134,33 @@ $timeRemaining = $sessionExpires - time();
             const minutes = Math.floor((seconds % 3600) / 60);
             const secs = seconds % 60;
             const pad = (n) => n.toString().padStart(2, '0');
-
-            return hours > 0 ?
-                `${hours}:${pad(minutes)}:${pad(secs)}` :
-                `${minutes}:${pad(secs)}`;
+            return hours > 0 ? `${hours}:${pad(minutes)}:${pad(secs)}` : `${minutes}:${pad(secs)}`;
         }
 
-        function updateStyle(seconds) {
-            timerContainer.classList.remove('warning', 'critical');
+        function updateTimer() {
+            if (remainingSeconds > 0) {
+                remainingSeconds--;
+                timerElement.textContent = formatTime(remainingSeconds);
 
-            if (seconds <= CRITICAL_THRESHOLD) {
-                timerContainer.classList.add('critical');
-            } else if (seconds <= WARNING_THRESHOLD) {
-                timerContainer.classList.add('warning');
-            }
-        }
-
-        function handleExpired() {
-            timerElement.textContent = '0:00';
-            timerContainer.classList.add('critical');
-
-            if (typeof showToast === 'function') {
-                showToast('Session Expired', 'Redirecting to login...', 'error', 3000);
+                // Update styles
+                timerElement.parentNode.classList.remove('warning', 'critical');
+                if (remainingSeconds <= CRITICAL_THRESHOLD) {
+                    timerElement.parentNode.classList.add('critical');
+                } else if (remainingSeconds <= WARNING_THRESHOLD) {
+                    timerElement.parentNode.classList.add('warning');
+                }
+            } else {
+                timerElement.textContent = '0:00';
+                timerElement.parentNode.classList.add('critical');
+                // Optional: redirect or show toast
             }
 
-            setTimeout(() => {
-                window.location.href = 'login.php';
-            }, 3000);
+            // Update regen counter
+            sinceRegenSeconds++;
+            regenElement.textContent = 'Since last regen: ' + formatTime(sinceRegenSeconds);
         }
 
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initTimer);
-        } else {
-            initTimer();
-        }
+        setInterval(updateTimer, 1000);
+        updateTimer();
     })();
 </script>
