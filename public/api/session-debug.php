@@ -13,7 +13,7 @@ header('Expires: 0');
 header('Content-Type: text/html; charset=utf-8');
 
 // Only allow localhost or specific IP in production
-$allowed_ips = ['127.0.0.1', '::1']; // Add your dev IP
+$allowed_ips = ['127.0.0.1', '::1', '86.121.141.234']; // Add your dev IP
 if (!in_array($_SERVER['REMOTE_ADDR'], $allowed_ips)) {
     die('Access denied. Only localhost allowed.');
 }
