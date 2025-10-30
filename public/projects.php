@@ -48,7 +48,8 @@ $controller->generateJson();
 
             <!-- TOP BAR WITH FILTERS AND SEARCH -->
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <div class="d-flex align-items-center gap-2">
+                <!-- Left: Buttons, Filters, and Status Toggle -->
+                <div class="d-flex align-items-center gap-2 flex-wrap">
                     <button class="btn btn-primary" id="btnAddProject">
                         <i class="bi bi-plus-circle"></i> New Project
                     </button>
@@ -57,16 +58,16 @@ $controller->generateJson();
                     </button>
 
                     <!-- Filter Dropdowns -->
-                    <select class="form-select" id="teamFilter" style="width: 200px;">
+                    <select class="form-select" id="teamFilter" style="width: 175px;">
                     </select>
-                    <select class="form-select" id="assignedFilter" style="width: 200px;">
+                    <select class="form-select" id="assignedFilter" style="width: 175px;">
                         <option value="">All Assigned</option>
                     </select>
-                    <select class="form-select" id="statusFilter" style="width: 200px;">
+                    <select class="form-select" id="statusFilter" style="width: 175px;">
                         <option value="">All Status</option>
                     </select>
 
-                    <!-- Active Status Toggle Buttons -->
+                    <!-- Status Toggle Buttons -->
                     <div class="btn-group" role="group" aria-label="Active status filter">
                         <button type="button" class="btn btn-outline-success btn-sm" id="filterActive">
                             <i class="bi bi-toggle-on"></i> Active
@@ -80,9 +81,19 @@ $controller->generateJson();
                     </div>
                 </div>
 
-                <div class="position-relative" style="width: 300px;">
-                    <input type="text" id="projectSearch" class="form-control pe-5" placeholder="Search projects...">
-                    <button type="button" id="clearSearch" class="btn btn-link position-absolute top-50 end-0 translate-middle-y text-muted" style="display: none; padding: 0.375rem 0.75rem;">
+                <!-- Right: Search Bar (Bigger) -->
+                <div class="position-relative" style="width: 450px;">
+                    <input
+                        type="text"
+                        id="projectSearch"
+                        class="form-control form-control-lg pe-5"
+                        placeholder="Search projects..."
+                        style="border-radius: 50px; font-size: 16px; padding: 12px 24px;">
+                    <button
+                        type="button"
+                        id="clearSearch"
+                        class="btn btn-link position-absolute top-50 end-0 translate-middle-y text-muted"
+                        style="display: none; padding: 0.375rem 1rem;">
                         <i class="bi bi-x-lg"></i>
                     </button>
                 </div>
@@ -91,6 +102,7 @@ $controller->generateJson();
 
 
 
+            <!-- MAIN TABLE STRUCTURE -->
             <table id="projectsTable" class="table table-sm table-striped table-hover" style="width:100%">
                 <thead>
                     <tr>
@@ -148,7 +160,8 @@ $controller->generateJson();
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
 
-
+    <!-- Search Focus Shortcut -->
+    <?php require_once '../includes/components/search-focus/search-focus.php'; ?>
 
 
 </body>
