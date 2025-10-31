@@ -95,7 +95,7 @@
     }
 </style>
 
-<nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+<nav class="navbar navbar-expand-lg navbar-dark <?= $isDev ? 'bg-danger' : 'bg-primary' ?> shadow-sm">
     <div class="container-fluid">
         <!-- Brand with Icon (Left Side) -->
         <a class="navbar-brand fw-bold d-flex align-items-center" href="projects.php">
