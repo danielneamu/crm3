@@ -114,6 +114,63 @@ class ReportController
         }
     }
 
+
+    /**
+     * Get Contract Signed Analysis Report
+     * 
+     * @param array $filters Raw filters from request
+     * @return array Formatted response
+     */
+    public function getContractSignedAnalysis($filters = [])
+    {
+        try {
+            // Validate filters
+            $validatedFilters = [];
+
+            // Date range (defaults to 'april')
+            $dateRange = $filters['dateRange'] ?? 'april';
+            if (!in_array($dateRange, ['april', 'last3months'])) {
+                throw new Exception('Invalid date range');
+            }
+            $validatedFilters['dateRange'] = $dateRange;
+
+            // SFDC (optional, defaults to 'all')
+            $sfdc = !empty($filters['sfdc']) ? $filters['sfdc'] : 'all';
+            if (!in_array($sfdc, ['all', 'has', 'empty'])) {
+                $sfdc = 'all';
+            }
+            $validatedFilters['sfdc'] = $sfdc;
+
+            // AOV (optional, defaults to 'all')
+            $aov = !empty($filters['aov']) ? $filters['aov'] : 'all';
+            if (!in_array($aov, ['all', 'has', 'empty'])) {
+                $aov = 'all';
+            }
+            $validatedFilters['aov'] = $aov;
+
+            // Active (optional, defaults to 'all')
+            $active = !empty($filters['active']) ? $filters['active'] : 'all';
+            if (!in_array($active, ['all', '1', '0'])) {
+                $active = 'all';
+            }
+            $validatedFilters['active'] = $active;
+
+            // Execute query
+            $data = $this->report->getContractSignedAnalysis($validatedFilters);
+
+            // Format currency
+            $data = $this->formatCurrencyFields($data, ['aov']);
+
+            return [
+                'success' => true,
+                'data' => $data,
+                'count' => count($data)
+            ];
+        } catch (Exception $e) {
+            return $this->errorResponse($e->getMessage());
+        }
+    }
+
     /**
      * Get Filter Options for Dropdowns
      * Returns available teams, statuses, project types
@@ -286,6 +343,11 @@ class ReportController
                 case 'project_timeline':
                     $result = $this->getProjectTimeline($filters);
                     $filename = $filename ?: 'project_timeline_' . date('Y-m-d');
+                    break;
+
+                case 'contract_signed_analysis':
+                    $result = $this->getContractSignedAnalysis($filters);
+                    $filename = $filename ?: 'contract_signed_analysis_' . date('Y-m-d');
                     break;
 
                 default:

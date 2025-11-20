@@ -50,7 +50,7 @@ requireLogin();
             <div class="tab-pane fade show active" id="predefined" role="tabpanel">
                 <!-- Report Selection Cards -->
                 <div class="row g-3 mb-4">
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="card report-card h-100 cursor-pointer" data-report="agent_performance">
                             <div class="card-body">
                                 <h5 class="card-title">
@@ -66,7 +66,7 @@ requireLogin();
                         </div>
                     </div>
 
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="card report-card h-100 cursor-pointer" data-report="projects_since_april">
                             <div class="card-body">
                                 <h5 class="card-title">
@@ -82,7 +82,7 @@ requireLogin();
                         </div>
                     </div>
 
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="card report-card h-100 cursor-pointer" data-report="project_timeline">
                             <div class="card-body">
                                 <h5 class="card-title">
@@ -94,6 +94,19 @@ requireLogin();
                                 <small class="text-info">
                                     <i class="bi bi-info-circle"></i> Custom date range
                                 </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <div class="card report-card h-100 cursor-pointer" data-report="contract_signed_analysis">
+                            <div class="card-body">
+                                <h5 class="card-title">
+                                    <i class="bi bi-file-check"></i> Contract Signed Analysis
+                                </h5>
+                                <p class="card-text text-muted small">
+                                    Projects with "Contract Signed" status. Filter by date, SFDC coverage, AOV, and activity status.
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -158,6 +171,51 @@ requireLogin();
                                                 <option value="previous">Previous (Apr - Mar)</option>
                                             </select>
                                         </div>
+
+                                        <!-- Contract Signed Filters Container -->
+                                        <div id="contractSignedFiltersContainer" style="display: none;">
+                                            <div class="row g-3">
+                                                <!-- Date Range -->
+                                                <div class="col-md-3">
+                                                    <label class="form-label">Date Range</label>
+                                                    <select class="form-select" id="filterDateRange" name="dateRange">
+                                                        <option value="april" selected>Fiscal Year (April 1st)</option>
+                                                        <option value="last3months">Last 3 Months</option>
+                                                    </select>
+                                                </div>
+
+                                                <!-- SFDC Filter -->
+                                                <div class="col-md-3">
+                                                    <label class="form-label">SFDC</label>
+                                                    <select class="form-select" id="filterSfdc" name="sfdc">
+                                                        <option value="all">All</option>
+                                                        <option value="has">Has Value</option>
+                                                        <option value="empty">Empty</option>
+                                                    </select>
+                                                </div>
+
+                                                <!-- AOV Filter -->
+                                                <div class="col-md-3">
+                                                    <label class="form-label">AOV</label>
+                                                    <select class="form-select" id="filterAov" name="aov">
+                                                        <option value="all">All</option>
+                                                        <option value="has">Has Value</option>
+                                                        <option value="empty">Empty/Zero</option>
+                                                    </select>
+                                                </div>
+
+                                                <!-- Active Filter -->
+                                                <div class="col-md-3">
+                                                    <label class="form-label">Status</label>
+                                                    <select class="form-select" id="filterActive" name="active">
+                                                        <option value="all">All</option>
+                                                        <option value="1">Active</option>
+                                                        <option value="0">Inactive</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+
                                     </div>
 
                                     <div class="row g-2 mt-3">

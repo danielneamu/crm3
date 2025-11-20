@@ -246,6 +246,11 @@ function formatCellValue(value, col, reportType) {
         return value.toLocaleString();
     }
 
+    // Status field: active_project (for contract signed analysis)
+    if (col === 'active_project') {
+        return `<span class="badge ${value === 1 || value === '1' ? 'bg-success' : 'bg-secondary'}">${value === 1 || value === '1' ? 'Active' : 'Inactive'}</span>`;
+    }
+
     return value;
 }
 

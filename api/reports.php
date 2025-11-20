@@ -92,6 +92,30 @@ try {
         exit;
     }
 
+
+    // ============================================
+    // REPORT 4: Contract Signed Analysis
+    // ============================================
+    if ($action === 'getContractSignedAnalysis') {
+        if ($method !== 'GET') {
+            http_response_code(405);
+            echo json_encode(['error' => 'Method not allowed']);
+            exit;
+        }
+
+        $filters = [
+            'dateRange' => $_GET['dateRange'] ?? '',
+            'sfdc' => $_GET['sfdc'] ?? 'all',
+            'aov' => $_GET['aov'] ?? 'all',
+            'active' => $_GET['active'] ?? 'all'
+        ];
+
+        $result = $controller->getContractSignedAnalysis($filters);
+        echo json_encode($result);
+        exit;
+    }
+
+
     // ============================================
     // Get Filter Options (for dropdowns)
     // ============================================
@@ -132,7 +156,11 @@ try {
             'dateTo' => $_GET['dateTo'] ?? '',
             'status' => isset($_GET['status']) ? explode(',', $_GET['status']) : [],
             'projectType' => isset($_GET['projectType']) ? explode(',', $_GET['projectType']) : [],
-            'fiscalYear' => $_GET['fiscalYear'] ?? 'current'
+            'fiscalYear' => $_GET['fiscalYear'] ?? 'current',
+            'dateRange' => $_GET['dateRange'] ?? 'april',
+            'sfdc' => $_GET['sfdc'] ?? 'all',
+            'aov' => $_GET['aov'] ?? 'all',
+            'active' => $_GET['active'] ?? 'all'
         ];
 
         // Generate CSV export (exits after file download)

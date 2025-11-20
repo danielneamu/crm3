@@ -3,58 +3,66 @@
  * Handles report data export to CSV file
  */
 
+// In reports-export.js, find triggerCSVExport() function
+// REPLACE it with this:
+
 /**
  * Trigger CSV export for current report
  * Downloads file directly to user's computer
  * 
- * @param {string} reportType - Report type (agent_performance, projects_since_april, project_timeline)
+ * @param {string} reportType - Report type
  * @param {object} filters - Filters object
  */
 function triggerCSVExport(reportType, filters) {
-    // Build export URL
     let exportUrl = `../api/reports.php?action=exportCSV&reportType=${encodeURIComponent(reportType)}`;
 
-    // Add filter parameters to URL
+    // Standard date filters
     if (filters.dateFrom) exportUrl += `&dateFrom=${encodeURIComponent(filters.dateFrom)}`;
     if (filters.dateTo) exportUrl += `&dateTo=${encodeURIComponent(filters.dateTo)}`;
 
+    // Team filter
     if (filters.team && filters.team.length > 0) {
         exportUrl += `&team=${encodeURIComponent(filters.team.join(','))}`;
     }
 
+    // Status filter
     if (filters.status && filters.status.length > 0) {
         exportUrl += `&status=${encodeURIComponent(filters.status.join(','))}`;
     }
 
+    // Project type filter
     if (filters.projectType && filters.projectType.length > 0) {
         exportUrl += `&projectType=${encodeURIComponent(filters.projectType.join(','))}`;
     }
 
+    // Fiscal year filter
     if (filters.fiscalYear) {
         exportUrl += `&fiscalYear=${encodeURIComponent(filters.fiscalYear)}`;
     }
 
-    // Show toast
+    // Contract signed analysis filters
+    if (filters.dateRange) exportUrl += `&dateRange=${encodeURIComponent(filters.dateRange)}`;
+    if (filters.sfdc) exportUrl += `&sfdc=${encodeURIComponent(filters.sfdc)}`;
+    if (filters.aov) exportUrl += `&aov=${encodeURIComponent(filters.aov)}`;
+    if (filters.active) exportUrl += `&active=${encodeURIComponent(filters.active)}`;
+
     showToast('Exporting', 'Generating CSV file...', 'info', 2000);
 
-    // Trigger download by creating hidden link and clicking it
+    // Trigger download
     const link = document.createElement('a');
     link.href = exportUrl;
     link.style.display = 'none';
     document.body.appendChild(link);
 
-    // Set timeout to allow browser time to prepare download
     setTimeout(function () {
         link.click();
         document.body.removeChild(link);
 
-        // Show success message after brief delay
         setTimeout(function () {
             showToast('Success', 'CSV file downloaded successfully', 'success');
         }, 500);
     }, 100);
 }
-
 /**
  * Alternative export method using fetch API (for future use)
  * Allows for more control over download process

@@ -111,6 +111,9 @@ function setupEventListeners() {
 function selectReport(reportType) {
     currentReport = reportType;
 
+    // Always hide contract signed filters first
+    $('#contractSignedFiltersContainer').hide();
+
     // Hide all conditional filters first
     $('#projectTypeFilterContainer').hide();
     $('#fiscalYearFilterContainer').hide();
@@ -132,6 +135,10 @@ function selectReport(reportType) {
             configureProjectTimelineFilters();
             break;
 
+        case 'contract_signed_analysis':
+            configureContractSignedAnalysisFilters();
+            break;
+
         default:
             showToast('Error', 'Unknown report type', 'error');
             return;
@@ -141,10 +148,8 @@ function selectReport(reportType) {
     $('#initialState').hide();
     $('#reportDisplay').show();
 
-    // Scroll to filters
-    $('html, body').animate({
-        scrollTop: $('#filterPanel').offset().top - 100
-    }, 300);
+    // Scroll to filter panel
+       document.getElementById('filterPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 /**
@@ -215,6 +220,28 @@ function configureProjectTimelineFilters() {
 }
 
 /**
+ * Configure filters for Contract Signed Analysis report
+ */
+function configureContractSignedAnalysisFilters() {
+    // Show only contract signed filters
+    $('#contractSignedFiltersContainer').show();
+    $('#fiscalYearFilterContainer').hide();
+    $('#projectTypeFilterContainer').hide();
+    $('#filterDateFrom').closest('.col-md-3').hide();
+    $('#filterDateTo').closest('.col-md-3').hide();
+    $('#filterTeam').closest('.col-md-3').hide();
+    $('#filterStatus').closest('.col-md-3').hide();
+
+    // Set defaults
+    $('#filterDateRange').val('april');
+    $('#filterSfdc').val('all');
+    $('#filterAov').val('all');
+    $('#filterActive').val('all');
+
+    $('#reportTitle').text('Contract Signed Analysis');
+}
+
+/**
  * Reset all filters to defaults
  */
 function resetFilters() {
@@ -229,6 +256,12 @@ function resetFilters() {
 
     // Reset fiscal year
     $('#filterFiscalYear').val('current');
+
+    // Contract signed filters
+    $('#filterDateRange').val('april');
+    $('#filterSfdc').val('all');
+    $('#filterAov').val('all');
+    $('#filterActive').val('all');
 }
 
 /**
@@ -269,6 +302,10 @@ function runReport() {
         case 'project_timeline':
             apiUrl = buildApiUrl('getProjectTimeline', filters);
             break;
+
+        case 'contract_signed_analysis':
+            apiUrl = buildApiUrl('getContractSignedAnalysis', filters);
+            break;            
     }
 
     $.ajax({
@@ -327,6 +364,17 @@ function buildFiltersObject() {
     const fiscalYear = $('#filterFiscalYear').val();
     if (fiscalYear) filters.fiscalYear = fiscalYear;
 
+    // Contract Signed filters
+    const dateRange = $('#filterDateRange').val();
+    const sfdc = $('#filterSfdc').val();
+    const aov = $('#filterAov').val();
+    const active = $('#filterActive').val();
+
+    if (dateRange) filters.dateRange = dateRange;
+    if (sfdc && sfdc !== 'all') filters.sfdc = sfdc;
+    if (aov && aov !== 'all') filters.aov = aov;
+    if (active && active !== 'all') filters.active = active;
+
     return filters;
 }
 
@@ -369,22 +417,33 @@ function validateFilters(filters) {
 function buildApiUrl(action, filters) {
     let url = `../api/reports.php?action=${action}`;
 
+    // Standard date filters
     if (filters.dateFrom) url += `&dateFrom=${encodeURIComponent(filters.dateFrom)}`;
     if (filters.dateTo) url += `&dateTo=${encodeURIComponent(filters.dateTo)}`;
 
+    // Team filter
     if (filters.team && filters.team.length > 0) {
         url += `&team=${encodeURIComponent(filters.team.join(','))}`;
     }
 
+    // Status filter
     if (filters.status && filters.status.length > 0) {
         url += `&status=${encodeURIComponent(filters.status.join(','))}`;
     }
 
+    // Project type filter
     if (filters.projectType && filters.projectType.length > 0) {
         url += `&projectType=${encodeURIComponent(filters.projectType.join(','))}`;
     }
 
+    // Fiscal year filter
     if (filters.fiscalYear) url += `&fiscalYear=${encodeURIComponent(filters.fiscalYear)}`;
+
+    // Contract signed analysis filters
+    if (filters.dateRange) url += `&dateRange=${encodeURIComponent(filters.dateRange)}`;
+    if (filters.sfdc) url += `&sfdc=${encodeURIComponent(filters.sfdc)}`;
+    if (filters.aov) url += `&aov=${encodeURIComponent(filters.aov)}`;
+    if (filters.active) url += `&active=${encodeURIComponent(filters.active)}`;
 
     return url;
 }

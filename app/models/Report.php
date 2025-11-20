@@ -341,6 +341,100 @@ class Report
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /** NEW
+     * REPORT 4: Contract Signed Analysis
+     * Projects where latest status = "Contract Signed"
+     * 
+     * @param array $filters ['dateRange' => 'april'|'last3months', 'sfdc' => 'all'|'has'|'empty', 'aov' => 'all'|'has'|'empty', 'active' => 'all'|'1'|'0']
+     * @return array Projects data
+     */
+    public function getContractSignedAnalysis($filters = [])
+    {
+        $whereDate = '';
+        $whereSfdc = '';
+        $whereAov = '';
+        $whereActive = '';
+
+        // Date filter
+        if (!empty($filters['dateRange'])) {
+            if ($filters['dateRange'] === 'april') {
+                $whereDate = "AND latest.changed_at >= DATE_FORMAT(CURDATE(), '%Y-04-01')";
+            } elseif ($filters['dateRange'] === 'last3months') {
+                $whereDate = "AND latest.changed_at >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)";
+            }
+        }
+
+        // SFDC filter
+        if (!empty($filters['sfdc'])) {
+            if ($filters['sfdc'] === 'has') {
+                $whereSfdc = "AND p.sfdc_opp IS NOT NULL AND p.sfdc_opp != ''";
+            } elseif ($filters['sfdc'] === 'empty') {
+                $whereSfdc = "AND (p.sfdc_opp IS NULL OR p.sfdc_opp = '')";
+            }
+        }
+
+        // AOV filter (check if TCV is zero/null after calculation)
+        if (!empty($filters['aov'])) {
+            if ($filters['aov'] === 'has') {
+                $whereAov = "AND p.tcv_project > 0 AND p.tcv_project IS NOT NULL";
+            } elseif ($filters['aov'] === 'empty') {
+                $whereAov = "AND (p.tcv_project = 0 OR p.tcv_project IS NULL)";
+            }
+        }
+
+        // Active filter
+        if (!empty($filters['active']) && $filters['active'] !== 'all') {
+            $active = $filters['active'] === '1' ? 1 : 0;
+            $whereActive = "AND p.active_project = $active";
+        }
+
+        $sql = "
+            SELECT 
+                p.id_project as id,
+                c.name_companies as firma,
+                p.name_project as proiect,
+                a.nume_agent as agent,
+                p.eft_case as pt,
+                p.solution_dev_number as sd,
+                p.eft_command as eft,
+                p.sfdc_opp,
+                DATE_FORMAT(latest.changed_at, '%Y-%m-%d') as signed_date,
+                CASE 
+                    WHEN p.contract_project <= 12 THEN p.tcv_project
+                    WHEN p.contract_project = 24 THEN p.tcv_project / 2
+                    WHEN p.contract_project = 36 THEN p.tcv_project / 3
+                    ELSE (p.tcv_project / p.contract_project) * 12
+                END as aov,
+                p.active_project
+                
+            FROM projects p
+            INNER JOIN companies c ON p.company_project = c.id_companies
+            INNER JOIN agents a ON p.agent_project = a.id_agent
+            LEFT JOIN (
+                SELECT h1.project_id, h1.status_name, h1.changed_at
+                FROM project_status_history h1
+                INNER JOIN (
+                    SELECT project_id, MAX(id_status) as last_id
+                    FROM project_status_history
+                    GROUP BY project_id
+                ) h2 ON h1.id_status = h2.last_id
+            ) latest ON p.id_project = latest.project_id
+            
+            WHERE latest.status_name = 'Contract Signed'
+            $whereDate
+            $whereSfdc
+            $whereAov
+            $whereActive
+            
+            ORDER BY latest.changed_at DESC
+        ";
+
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     /**
      * Helper: Get filter options for dropdowns
      * Returns unique values for team, status, project type
