@@ -187,68 +187,95 @@ function calculateAllBusinessCases() {
 
 /**
  * Display individual business case tables for each line item
+ * NOW REPLACED WITH DETAILED BUSINESS CASE TABLE
  */
 function displayLineItemBusinessCases(otcItems, recurrentItems) {
     const container = $('#lineItemResults');
     container.empty();
 
-    // OTC Items
-    otcItems.forEach((item, index) => {
-        const card = createBusinessCaseCard(item, 'otc', index + 1);
-        container.append(card);
-    });
-
-    // Recurrent Items
-    recurrentItems.forEach((item, index) => {
-        const card = createBusinessCaseCard(item, 'recurrent', index + 1);
-        container.append(card);
-    });
+    // Create comprehensive detailed table
+    const table = createDetailedBusinessCaseTable(otcItems, recurrentItems);
+    container.append(table);
 }
 
 /**
- * Create business case card for single line item
+ * Create detailed business case table with all items and scenarios
  */
-function createBusinessCaseCard(item, type, number) {
-    const headerColor = type === 'otc' ? 'bg-primary' : 'bg-success';
-    const icon = type === 'otc' ? 'bi-coin' : 'bi-arrow-repeat';
-
+function createDetailedBusinessCaseTable(otcItems, recurrentItems) {
     let html = `
-        <div class="card mb-3">
-            <div class="card-header ${headerColor} text-white">
-                <i class="bi ${icon}"></i> <strong>${type.toUpperCase()} Item ${number}:</strong> ${item.description}
-                <span class="float-end">Base Cost: €${item.cost.toFixed(2)}</span>
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-table"></i> Detailed Business Case</h5>
             </div>
             <div class="card-body p-0">
+                <div class="d-flex gap-2 p-3 border-bottom">
+                    <button class="btn btn-sm btn-outline-secondary" onclick="copyDetailedTableToClipboard()">
+                        <i class="bi bi-clipboard"></i> Copy to Clipboard
+                    </button>
+                    <button class="btn btn-sm btn-outline-primary" onclick="exportDetailedTableToCSV()">
+                        <i class="bi bi-download"></i> Export CSV
+                    </button>
+                </div>
                 <div class="table-responsive">
-                    <table class="table table-sm table-bordered mb-0">
+                    <table class="table table-sm table-bordered mb-0" id="detailedBusinessCaseTable">
                         <thead class="table-light">
                             <tr>
-                                <th rowspan="2" class="align-middle">Period</th>
-                                <th colspan="3" class="text-center border-end">10% Margin</th>
-                                <th colspan="3" class="text-center border-end">15% Margin</th>
-                                <th colspan="3" class="text-center">25% Margin</th>
+                                <th rowspan="2" class="sticky-col align-middle">Item Description</th>
+                                <th colspan="3" class="text-center border-end">OTP</th>
+                                <th colspan="3" class="text-center border-end">6m (/lună)</th>
+                                <th colspan="3" class="text-center border-end">12m (/lună)</th>
+                                <th colspan="3" class="text-center border-end">24m (/lună)</th>
+                                <th colspan="3" class="text-center">36m (/lună)</th>
                             </tr>
                             <tr>
-                                <th class="text-center">OTP</th>
-                                <th class="text-center">Monthly</th>
-                                <th class="text-center border-end">TCV</th>
-                                <th class="text-center">OTP</th>
-                                <th class="text-center">Monthly</th>
-                                <th class="text-center border-end">TCV</th>
-                                <th class="text-center">OTP</th>
-                                <th class="text-center">Monthly</th>
-                                <th class="text-center">TCV</th>
+                                <th class="text-center">10%</th>
+                                <th class="text-center">15%</th>
+                                <th class="text-center border-end">25%</th>
+                                <th class="text-center">10%</th>
+                                <th class="text-center">15%</th>
+                                <th class="text-center border-end">25%</th>
+                                <th class="text-center">10%</th>
+                                <th class="text-center">15%</th>
+                                <th class="text-center border-end">25%</th>
+                                <th class="text-center">10%</th>
+                                <th class="text-center">15%</th>
+                                <th class="text-center border-end">25%</th>
+                                <th class="text-center">10%</th>
+                                <th class="text-center">15%</th>
+                                <th class="text-center">25%</th>
                             </tr>
                         </thead>
                         <tbody>
     `;
 
-    // ALL items show ALL periods (OTP, 6m, 12m, 24m, 36m)
-    html += generatePeriodRow('OTP', item.cost, type, 'otc');
-    html += generatePeriodRow('6 months', item.cost, type, '6m');
-    html += generatePeriodRow('12 months', item.cost, type, '12m');
-    html += generatePeriodRow('24 months', item.cost, type, '24m');
-    html += generatePeriodRow('36 months', item.cost, type, '36m');
+    // OTC Items Section
+    if (otcItems.length > 0) {
+        html += `
+            <tr class="table-secondary">
+                <td colspan="16" class="sticky-col fw-bold">OTC ITEMS</td>
+            </tr>
+        `;
+
+        otcItems.forEach(item => {
+            html += generateDetailedItemRow(item, 'otc');
+        });
+    }
+
+    // Recurrent Items Section
+    if (recurrentItems.length > 0) {
+        html += `
+            <tr class="table-secondary">
+                <td colspan="16" class="sticky-col fw-bold">RECURRENT ITEMS</td>
+            </tr>
+        `;
+
+        recurrentItems.forEach(item => {
+            html += generateDetailedItemRow(item, 'recurrent');
+        });
+    }
+
+    // Grand Total Row
+    html += generateDetailedTotalRow(otcItems, recurrentItems);
 
     html += `
                         </tbody>
@@ -259,6 +286,204 @@ function createBusinessCaseCard(item, type, number) {
     `;
 
     return html;
+}
+
+/**
+ * Generate detailed row for single item across all scenarios
+ */
+function generateDetailedItemRow(item, type) {
+    const margins = ['10', '15', '25'];
+    let row = `<tr><td class="sticky-col">${item.description}</td>`;
+
+    // OTP scenario
+    margins.forEach((margin, idx) => {
+        const markup = MARKUP_TABLE.otc[margin];
+        const value = item.cost * markup;
+        const borderClass = idx === 2 ? 'border-end' : '';
+        row += `<td class="text-end ${borderClass}">${formatCurrency(value)}</td>`;
+    });
+
+    // Contract scenarios (6m, 12m, 24m, 36m)
+    ['6m', '12m', '24m', '36m'].forEach((period, periodIdx) => {
+        const months = parseInt(period.replace('m', ''));
+
+        margins.forEach((margin, idx) => {
+            const otcMarkup = MARKUP_TABLE[period].otc[margin];
+            const recMarkup = MARKUP_TABLE[period].recurrent[margin];
+
+            let monthlyValue;
+            if (type === 'otc') {
+                // OTC item: Amortized into monthly payments
+                monthlyValue = (item.cost / months) * otcMarkup;
+            } else {
+                // Recurrent item: Monthly rate
+                monthlyValue = item.cost * recMarkup;
+            }
+
+            const borderClass = idx === 2 ? 'border-end' : '';
+            row += `<td class="text-end ${borderClass}">${formatCurrency(monthlyValue)}</td>`;
+        });
+    });
+
+    row += '</tr>';
+    return row;
+}
+
+/**
+ * Generate grand total row
+ */
+function generateDetailedTotalRow(otcItems, recurrentItems) {
+    const margins = ['10', '15', '25'];
+    let row = `<tr class="table-dark fw-bold"><td class="sticky-col">TOTAL</td>`;
+
+    // Calculate totals for OTP
+    margins.forEach((margin, idx) => {
+        let total = 0;
+
+        // OTC items
+        otcItems.forEach(item => {
+            total += item.cost * MARKUP_TABLE.otc[margin];
+        });
+
+        // Recurrent items (1 month)
+        recurrentItems.forEach(item => {
+            total += item.cost * MARKUP_TABLE.otc[margin];
+        });
+
+        const borderClass = idx === 2 ? 'border-end' : '';
+        row += `<td class="text-end ${borderClass}">${formatCurrency(total)}</td>`;
+    });
+
+    // Calculate totals for contract periods
+    ['6m', '12m', '24m', '36m'].forEach(period => {
+        const months = parseInt(period.replace('m', ''));
+
+        margins.forEach((margin, idx) => {
+            const otcMarkup = MARKUP_TABLE[period].otc[margin];
+            const recMarkup = MARKUP_TABLE[period].recurrent[margin];
+
+            let monthlyTotal = 0;
+
+            // OTC items amortized
+            otcItems.forEach(item => {
+                monthlyTotal += (item.cost / months) * otcMarkup;
+            });
+
+            // Recurrent items
+            recurrentItems.forEach(item => {
+                monthlyTotal += item.cost * recMarkup;
+            });
+
+            const borderClass = idx === 2 ? 'border-end' : '';
+            row += `<td class="text-end ${borderClass}">${formatCurrency(monthlyTotal)}</td>`;
+        });
+    });
+
+    row += '</tr>';
+    return row;
+}
+
+/**
+ * Format currency with exact 2 decimals and thousands separator
+ * No abbreviations - show full amount
+ */
+function formatCurrency(value) {
+    return '€' + value.toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+}
+
+/**
+ * Copy detailed table to clipboard (tab-separated for Excel)
+ */
+function copyDetailedTableToClipboard() {
+    const table = document.getElementById('detailedBusinessCaseTable');
+    let text = '';
+
+    // Headers
+    const headerRows = table.querySelectorAll('thead tr');
+    headerRows.forEach(row => {
+        const cells = row.querySelectorAll('th');
+        const rowData = Array.from(cells).map(cell => {
+            // Handle colspan
+            const colspan = parseInt(cell.getAttribute('colspan')) || 1;
+            const value = cell.textContent.trim();
+            if (colspan > 1) {
+                return Array(colspan).fill(value).join('\t');
+            }
+            return value;
+        }).join('\t');
+        text += rowData + '\n';
+    });
+
+    // Body rows
+    const bodyRows = table.querySelectorAll('tbody tr');
+    bodyRows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        const rowData = Array.from(cells).map(cell => {
+            return cell.textContent.trim();
+        }).join('\t');
+        text += rowData + '\n';
+    });
+
+    // Copy to clipboard
+    navigator.clipboard.writeText(text).then(() => {
+        showToast('Success', 'Table copied to clipboard - paste into Excel', 'success');
+    }).catch(err => {
+        console.error('Copy failed:', err);
+        showToast('Error', 'Failed to copy to clipboard', 'error');
+    });
+}
+
+/**
+ * Export detailed table to CSV
+ */
+function exportDetailedTableToCSV() {
+    const table = document.getElementById('detailedBusinessCaseTable');
+    let csv = '\uFEFF'; // UTF-8 BOM for Excel
+
+    // Headers
+    const headerRows = table.querySelectorAll('thead tr');
+    headerRows.forEach(row => {
+        const cells = row.querySelectorAll('th');
+        const rowData = Array.from(cells).map(cell => {
+            const colspan = parseInt(cell.getAttribute('colspan')) || 1;
+            const value = cell.textContent.trim();
+            if (colspan > 1) {
+                return Array(colspan).fill(`"${value}"`).join(',');
+            }
+            return `"${value}"`;
+        }).join(',');
+        csv += rowData + '\n';
+    });
+
+    // Body rows
+    const bodyRows = table.querySelectorAll('tbody tr');
+    bodyRows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        const rowData = Array.from(cells).map(cell => {
+            const value = cell.textContent.trim();
+            return `"${value}"`;
+        }).join(',');
+        csv += rowData + '\n';
+    });
+
+    // Download
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const date = new Date().toISOString().split('T')[0];
+
+    link.href = url;
+    link.download = `detailed_business_case_${date}.csv`;
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+
+    showToast('Success', 'CSV file downloaded', 'success');
 }
 
 /**

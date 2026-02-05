@@ -151,11 +151,11 @@ requireLogin();
                         </div>
                     </div>
 
-                    <!-- Line Item Business Cases -->
+                    <!-- Detailed Business Case -->
                     <div class="mb-4">
-                        <h4 class="mb-3"><i class="bi bi-list-ol"></i> Line Item Business Cases</h4>
+                        <h4 class="mb-3"><i class="bi bi-table"></i> Detailed Business Case</h4>
                         <div id="lineItemResults">
-                            <!-- Dynamic business case tables -->
+                            <!-- Detailed business case table -->
                         </div>
                     </div>
                 </div>
