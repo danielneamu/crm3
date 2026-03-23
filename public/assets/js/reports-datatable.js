@@ -42,8 +42,14 @@ function renderReportTable(data, reportType) {
         tr.attr('data-row-index', rowIndex);
 
         columns.forEach(col => {
-            const value = formatCellValue(row[col], col, reportType);
-            const cell = $('<td></td>').html(value);
+            // Skip formatting for date columns - let DataTable handle sorting
+            let displayValue = row[col];
+
+            if (!(col.includes('date') || col.includes('activity') || col.includes('updated'))) {
+                displayValue = formatCellValue(row[col], col, reportType);
+            }
+
+            const cell = $('<td></td>').html(displayValue);
 
             // Add classes for specific column types
             if (col.includes('tcv') || col.includes('aov') || col.includes('revenue') || col.includes('avg')) {
