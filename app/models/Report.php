@@ -358,7 +358,11 @@ class Report
         // Date filter
         if (!empty($filters['dateRange'])) {
             if ($filters['dateRange'] === 'april') {
-                $whereDate = "AND latest.changed_at >= DATE_FORMAT(CURDATE(), '%Y-04-01')";
+                $whereDate = "AND latest.changed_at >= CASE
+                    WHEN MONTH(CURDATE()) < 4 
+                    THEN DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 1 YEAR), '%Y-04-01')
+                    ELSE DATE_FORMAT(CURDATE(), '%Y-04-01')
+                END";
             } elseif ($filters['dateRange'] === 'last3months') {
                 $whereDate = "AND latest.changed_at >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)";
             }
