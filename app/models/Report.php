@@ -355,7 +355,7 @@ class Report
         $whereAov = '';
         $whereActive = '';
 
-        // Date filter
+        // Date filter new
         if (!empty($filters['dateRange'])) {
             if ($filters['dateRange'] === 'april') {
                 $whereDate = "AND latest.changed_at >= CASE
