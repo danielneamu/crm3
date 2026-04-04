@@ -265,7 +265,7 @@ function populateForm(data) {
     $('#agent').prop('disabled', true);
     $('#agent').html(`<option value="${data.agent_id}" selected>${data.agent}</option>`);
 
-    $('#dsc').val(data.id_dsc);    
+    $('#dsc').val(data.id_dsc || '');
 
     $('#projectType').val(data.type);
     $('#tcv').val(data.tcv_project);
