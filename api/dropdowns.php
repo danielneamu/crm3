@@ -43,6 +43,13 @@ try {
             SELECT id_parteneri, name_parteneri 
             FROM parteneri 
             ORDER BY name_parteneri
+        ")->fetchAll(PDO::FETCH_ASSOC),
+
+        'dsc' => $conn->query("
+            SELECT id_dsc, dsc_name 
+            FROM dsc 
+            WHERE status_dsc = 1
+            ORDER BY dsc_name
         ")->fetchAll(PDO::FETCH_ASSOC)
     ];
 

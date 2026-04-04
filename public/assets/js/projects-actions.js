@@ -61,6 +61,8 @@ $(document).ready(function () {
 
     // Edit Project
     $('#btnEditProject').click(function () {
+        console.log('Selected row for editing:', selectedRow);
+
         if (!selectedRow) return;
 
         $('#projectModalLabel').text('Edit Project');
@@ -239,6 +241,11 @@ function loadDropdowns(callback) {
             $('#partners').append(`<option value="${p.id_parteneri}">${p.name_parteneri}</option>`);
         });
 
+        $('#dsc').html('<option value="">Select DSC</option>');
+        data.dsc.forEach(t => {
+            $('#dsc').append(`<option value="${t.id_dsc}">${t.dsc_name}</option>`);
+        });
+
         if (callback) callback();
     });
 }
@@ -246,6 +253,8 @@ function loadDropdowns(callback) {
 // Populate form for editing
 function populateForm(data) {
     console.log('populateForm data:', data);
+    console.log('populateForm data:', data.id_dsc);
+
 
     $('#projectId').val(data.id_project);
     $('#company').val(data.company_id);
@@ -255,6 +264,8 @@ function populateForm(data) {
     // Manually populate agent dropdown with current agent (even if inactive)
     $('#agent').prop('disabled', true);
     $('#agent').html(`<option value="${data.agent_id}" selected>${data.agent}</option>`);
+
+    $('#dsc').val(data.id_dsc);    
 
     $('#projectType').val(data.type);
     $('#tcv').val(data.tcv_project);

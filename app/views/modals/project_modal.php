@@ -92,9 +92,10 @@
                                 </select>
                             </div>
                             <div class="col-md-3">
-                                <small class="form-text text-muted xs-text d-block" style="margin-top: 2rem;">
-                                    <i class="bi bi-info-circle-fill me-1"></i>Select a team to enable agent selection
-                                </small>
+                                <label class="form-label small">DSC <span class="text-danger">*</span></label>
+                                <select class="form-select tall-input" id="dsc" name="dsc_project" >
+                                    <option value="">Select DSC</option>
+                                </select>
                             </div>
                         </div>
                     </div>

@@ -32,8 +32,8 @@ class ProjectController
             INSERT INTO projects (
                 name_project, company_project, agent_project, project_type,
                 tcv_project, contract_project, eft_command, solution_dev_number, 
-                eft_case, sfdc_opp, active_project, createDate_project, comment_project
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                eft_case, sfdc_opp, active_project, createDate_project, comment_project, dsc_project
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
 
             $stmt->execute([
@@ -49,7 +49,8 @@ class ProjectController
                 $data['sfdc_opp'] ?? null,
                 isset($data['active_project']) ? 1 : 0,
                 $createDate,
-                $data['comment_project'] ?? null  // Single comment field
+                $data['comment_project'] ?? null,  // Single comment field
+                !empty($data['dsc_project']) ? $data['dsc_project'] : null
             ]);
 
             $projectId = $this->conn->lastInsertId();
@@ -98,7 +99,8 @@ class ProjectController
                 eft_case = ?,
                 sfdc_opp = ?,
                 active_project = ?,
-                comment_project = ?
+                comment_project = ?,
+                dsc_project = ?
             WHERE id_project = ?
         ");
 
@@ -115,6 +117,7 @@ class ProjectController
                 $data['sfdc_opp'] ?? null,
                 isset($data['active_project']) ? 1 : 0,
                 $data['comment_project'] ?? null,
+                !empty($data['dsc_project']) ? $data['dsc_project'] : null,
                 $id
             ]);
 

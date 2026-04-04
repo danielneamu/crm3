@@ -79,8 +79,12 @@ class Project
                     FROM project_partners pp
                     WHERE pp.project_id = p.id_project
                       AND pp.is_active = 1
-                ) AS partner_ids
-            FROM projects p
+                ) AS partner_ids,
+
+                p.dsc_project AS id_dsc,
+                d.dsc_name
+
+                FROM projects p
             LEFT JOIN companies c 
                 ON p.company_project = c.id_companies
             LEFT JOIN agents a 
@@ -88,6 +92,9 @@ class Project
             LEFT JOIN agent_team_history h 
                 ON h.agent_id = p.agent_project
                 AND p.createDate_project BETWEEN h.start_date AND IFNULL(h.end_date, '9999-12-31')  -- ← NEW JOIN
+
+            LEFT JOIN dsc d ON d.id_dsc = p.dsc_project
+
             ORDER BY p.id_project DESC
         ")->fetchAll(PDO::FETCH_ASSOC);
     }
