@@ -117,6 +117,26 @@ try {
 
 
     // ============================================
+    // REPORT 5: Activity Report (Raport de Activitate)
+    // ============================================
+    if ($action === 'getActivityReport') {
+        if ($method !== 'GET') {
+            http_response_code(405);
+            echo json_encode(['error' => 'Method not allowed']);
+            exit;
+        }
+
+        // Default date starting filte is 
+        $filters = [
+            'dateFrom' => $_GET['dateFrom'] ?? '2026-04-01'
+        ];
+
+        $result = $controller->getActivityReport($filters);
+        echo json_encode($result);
+        exit;
+    }
+
+    // ============================================
     // Get Filter Options (for dropdowns)
     // ============================================
     if ($action === 'getFilterOptions') {
@@ -146,6 +166,15 @@ try {
         if (empty($reportType)) {
             http_response_code(400);
             echo json_encode(['error' => 'Report type required']);
+            exit;
+        }
+
+        // Valid report types - ADD 'activity_report' here
+        $validReports = ['agent_performance', 'projects_since_april', 'project_timeline', 'contract_signed_analysis', 'activity_report'];
+
+        if (!in_array($reportType, $validReports)) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Invalid report type']);
             exit;
         }
 

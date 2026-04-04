@@ -350,6 +350,11 @@ class ReportController
                     $filename = $filename ?: 'contract_signed_analysis_' . date('Y-m-d');
                     break;
 
+                case 'activity_report':
+                    $result = $this->getActivityReport($filters);
+                    $filename = $filename ?: 'activity_report_' . date('Y-m-d');
+                    break;
+
                 default:
                     throw new Exception('Invalid report type');
             }
@@ -393,4 +398,37 @@ class ReportController
             exit;
         }
     }
+
+    /**
+     * Activity report 5
+        * Shows all projects created since 1st Jan 2026 with key details and latest status
+     */
+
+    public function getActivityReport($filters = [])
+    {
+        try {
+            // Validate and normalize filters
+            $validatedFilters = $this->validateFilters($filters, ['dateRange']);
+
+            // Add dateFrom if provided
+            if (!empty($filters['dateFrom'])) {
+                $validatedFilters['dateFrom'] = $filters['dateFrom'];
+            }
+
+            // Execute query
+            $data = $this->report->getActivityReport($validatedFilters);
+
+            // Format currency fields
+            $data = $this->formatCurrencyFields($data, ['tcv', 'aov']);
+
+            return [
+                'success' => true,
+                'data' => $data,
+                'count' => count($data)
+            ];
+        } catch (Exception $e) {
+            return $this->errorResponse($e->getMessage());
+        }
+    }
+
 }

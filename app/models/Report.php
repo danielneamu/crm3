@@ -459,4 +459,135 @@ class Report
             )->fetchAll(PDO::FETCH_COLUMN)
         ];
     }
+
+    /**
+     * Report 5 - Activity Report
+        * Shows all projects created since 1st Jan 2026 with key details and latest status
+     */
+
+    public function getActivityReport($filters = [])
+    {
+
+        $sql = "
+        SELECT 
+            COALESCE(p.sfdc_opp, '') as SFDC,
+            CONCAT_WS('/', 
+                NULLIF(p.eft_case, ''),
+                NULLIF(p.eft_command, ''),
+                NULLIF(p.solution_dev_number, '')
+            ) as PT_SD_EFT,
+            DATE_FORMAT(p.createDate_project, '%d/%m/%Y') as data_crearii,
+            CASE 
+                WHEN a.current_team = 'Hi Corp' THEN 'LE-Strategic'
+                WHEN a.current_team IN ('MLE Craiova', 'MLE Pitesti') THEN 'LE-KAM'
+                WHEN a.current_team = 'Guv' THEN 'Guv'
+                ELSE 'Other'
+            END as segment,
+            'Daniel Neamu' as presales,
+            a.nume_agent as agent,
+            COALESCE(d.dsc_name, '') as dsc,
+            c.name_companies as client,
+            p.name_project as proiect,
+            '' as categorie,
+            '' as data_depunerii,
+            '' as localitate,
+            p.tcv_project as tcv,
+            CASE 
+                WHEN p.contract_project <= 12 THEN p.tcv_project
+                WHEN p.contract_project = 24 THEN ROUND(p.tcv_project / 2, 2)
+                WHEN p.contract_project = 36 THEN ROUND(p.tcv_project / 3, 2)
+                ELSE ROUND((p.tcv_project / p.contract_project) * 12, 2)
+            END as aov,
+            COALESCE(GROUP_CONCAT(DISTINCT pt.name_parteneri SEPARATOR ', '), '') as partener,
+            TRIM(SUBSTRING_INDEX(
+                COALESCE(
+                    (SELECT comment FROM project_status_history 
+                     WHERE project_id = p.id_project AND comment IS NOT NULL AND comment != ''
+                     ORDER BY changed_at DESC LIMIT 1),
+                    ''
+                ),
+                '/', 1
+            )) as tip_ofertare,
+            CASE 
+                WHEN COALESCE(
+                    (SELECT comment FROM project_status_history 
+                     WHERE project_id = p.id_project AND comment IS NOT NULL AND comment != ''
+                     ORDER BY changed_at DESC LIMIT 1),
+                    '') LIKE '%/%'
+                THEN TRIM(SUBSTRING_INDEX(
+                    SUBSTRING_INDEX(
+                        (SELECT comment FROM project_status_history 
+                         WHERE project_id = p.id_project AND comment IS NOT NULL AND comment != ''
+                         ORDER BY changed_at DESC LIMIT 1),
+                        '/', 2
+                    ),
+                    '/', -1
+                ))
+                ELSE ''
+            END as resell_ict_managed,
+            CASE 
+                WHEN COALESCE(
+                    (SELECT comment FROM project_status_history 
+                     WHERE project_id = p.id_project AND comment IS NOT NULL AND comment != ''
+                     ORDER BY changed_at DESC LIMIT 1),
+                    '') LIKE '%/%/%'
+                THEN TRIM(SUBSTRING_INDEX(
+                    (SELECT comment FROM project_status_history 
+                     WHERE project_id = p.id_project AND comment IS NOT NULL AND comment != ''
+                     ORDER BY changed_at DESC LIMIT 1),
+                    '/', -1
+                ))
+                ELSE ''
+            END as vendor,
+            CASE 
+                WHEN latest_status.status_name = 'Design' THEN 'In Lucru'
+                WHEN latest_status.status_name = 'Completed' THEN 'Ofertat'
+                WHEN latest_status.status_name = 'Contract Signed' THEN 'Castigat'
+                WHEN latest_status.status_name = 'Qualifying' THEN 'Revenire pentru calificari'
+                WHEN latest_status.status_name = 'No Solution' THEN 'Inchis fara solutie'
+                WHEN latest_status.status_name IN ('Cancelled', 'Offer Refused') THEN 'Pierdut'
+                ELSE COALESCE(latest_status.status_name, 'New')
+            END as status,
+            COALESCE(
+                CASE 
+                    WHEN latest_status.status_name = 'Completed'
+                    THEN DATE_FORMAT(latest_status.changed_at, '%d/%m/%Y')
+                    ELSE ''
+                END,
+                ''
+            ) as data_predare_catre_am
+        FROM projects p
+        INNER JOIN companies c ON p.company_project = c.id_companies
+        INNER JOIN agents a ON p.agent_project = a.id_agent
+        LEFT JOIN project_partners pp ON p.id_project = pp.project_id AND pp.is_active = 1
+        LEFT JOIN parteneri pt ON pp.partner_id = pt.id_parteneri
+        LEFT JOIN dsc d ON d.id_dsc = p.dsc_project
+        LEFT JOIN (
+            SELECT h1.project_id, h1.status_name, h1.comment, h1.changed_at
+            FROM project_status_history h1
+            INNER JOIN (
+                SELECT project_id, MAX(id_status) as max_id
+                FROM project_status_history
+                GROUP BY project_id
+            ) h2 ON h1.project_id = h2.project_id AND h1.id_status = h2.max_id
+        ) latest_status ON p.id_project = latest_status.project_id
+        WHERE p.createDate_project >= ?
+        GROUP BY p.id_project
+        ORDER BY p.createDate_project ASC
+    ";
+
+        $params = [];
+        $params[] = !empty($filters['dateFrom']) ? $filters['dateFrom'] : '2026-04-01';
+
+        // DEBUG: Check what's being passed
+        error_log('Activity Report Params: ' . json_encode($params));
+
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute($params);
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+
+
 }

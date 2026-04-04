@@ -95,12 +95,17 @@ function initializeDataTable() {
         return;
     }
 
+    let sortOrder = 'desc'; // default
+    if (currentReport === 'activity_report') {
+        sortOrder = 'asc'; // Oldest to newest for activity report
+    }
+
     try {
         // Initialize new DataTable
         reportDataTable = table.DataTable({
             pageLength: 25,
             lengthMenu: [[25, 50, 100, -1], [25, 50, 100, 'All']],
-            order: [[0, 'desc']],
+            order: [],
             responsive: true,
             scrollX: true,
             stateSave: false,

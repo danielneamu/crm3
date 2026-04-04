@@ -139,6 +139,10 @@ function selectReport(reportType) {
             configureContractSignedAnalysisFilters();
             break;
 
+        case 'activity_report':
+            configureActivityReportFilters();
+            break;
+
         default:
             showToast('Error', 'Unknown report type', 'error');
             return;
@@ -305,7 +309,11 @@ function runReport() {
 
         case 'contract_signed_analysis':
             apiUrl = buildApiUrl('getContractSignedAnalysis', filters);
-            break;            
+            break; 
+
+        case 'activity_report':
+            apiUrl = buildApiUrl('getActivityReport', filters);
+            break;           
     }
 
     $.ajax({
@@ -650,4 +658,23 @@ function exportReport() {
 
     const filters = buildFiltersObject();
     triggerCSVExport(currentReport, filters);
+}
+
+/**
+ * Configure Activity reports function
+ */
+function configureActivityReportFilters() {
+    // Show only Date From filter
+    $('#filterDateFrom').closest('.col-md-3').show();
+    $('#filterDateTo').closest('.col-md-3').hide();
+    $('#filterTeam').closest('.col-md-3').hide();
+    $('#filterStatus').closest('.col-md-3').hide();
+    $('#projectTypeFilterContainer').hide();
+    $('#fiscalYearFilterContainer').hide();
+    $('#contractSignedFiltersContainer').hide();
+
+    // Set default date (01/01/2026)
+    $('#filterDateFrom').val('2026-04-01');
+
+    $('#reportTitle').text('Activity Report');
 }

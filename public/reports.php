@@ -50,7 +50,24 @@ requireLogin();
             <div class="tab-pane fade show active" id="predefined" role="tabpanel">
                 <!-- Report Selection Cards -->
                 <div class="row g-3 mb-4">
+
                     <div class="col-md-3">
+                        <div class="card report-card h-100 cursor-pointer" data-report="activity_report">
+                            <div class="card-body">
+                                <h5 class="card-title">
+                                    <i class="bi bi-calendar3"></i> Activity Report
+                                </h5>
+                                <p class="card-text text-muted small">
+                                    Detailed project activity with segment, offer type, and vendor information. Projects since April 1st.
+                                </p>
+                                <small class="text-info">
+                                    <i class="bi bi-info-circle"></i> Filterable by team
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-2">
                         <div class="card report-card h-100 cursor-pointer" data-report="agent_performance">
                             <div class="card-body">
                                 <h5 class="card-title">
@@ -66,7 +83,7 @@ requireLogin();
                         </div>
                     </div>
 
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <div class="card report-card h-100 cursor-pointer" data-report="projects_since_april">
                             <div class="card-body">
                                 <h5 class="card-title">
@@ -82,7 +99,7 @@ requireLogin();
                         </div>
                     </div>
 
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <div class="card report-card h-100 cursor-pointer" data-report="project_timeline">
                             <div class="card-body">
                                 <h5 class="card-title">
@@ -110,6 +127,8 @@ requireLogin();
                             </div>
                         </div>
                     </div>
+
+
                 </div>
 
                 <!-- Report Display Area -->
