@@ -484,8 +484,8 @@ class Report
                 ELSE 'Other'
             END as segment,
             'Daniel Neamu' as presales,
-            a.nume_agent as agent,
             COALESCE(d.dsc_name, '') as dsc,
+            a.nume_agent as agent,
             c.name_companies as client,
             p.name_project as proiect,
             '' as categorie,
@@ -499,15 +499,20 @@ class Report
                 ELSE ROUND((p.tcv_project / p.contract_project) * 12, 2)
             END as aov,
             COALESCE(GROUP_CONCAT(DISTINCT pt.name_parteneri SEPARATOR ', '), '') as partener,
-            TRIM(SUBSTRING_INDEX(
-                COALESCE(
-                    (SELECT comment FROM project_status_history 
-                     WHERE project_id = p.id_project AND comment IS NOT NULL AND comment != ''
-                     ORDER BY changed_at DESC LIMIT 1),
-                    ''
-                ),
-                '/', 1
-            )) as tip_ofertare,
+CASE 
+    WHEN TRIM(SUBSTRING_INDEX(COALESCE(
+        (SELECT comment FROM project_status_history 
+         WHERE project_id = p.id_project AND comment IS NOT NULL AND comment != ''
+         ORDER BY changed_at DESC LIMIT 1), 
+    ''), '/', 1)) = 'AI' 
+    THEN 'Achizitie initiala'
+    
+    ELSE TRIM(SUBSTRING_INDEX(COALESCE(
+        (SELECT comment FROM project_status_history 
+         WHERE project_id = p.id_project AND comment IS NOT NULL AND comment != ''
+         ORDER BY changed_at DESC LIMIT 1), 
+    ''), '/', 1))
+END as tip_ofertare,
             CASE 
                 WHEN COALESCE(
                     (SELECT comment FROM project_status_history 
