@@ -1,5 +1,3 @@
-
-text/x-generic test.py ( Python script, UTF-8 Unicode text executable, with CRLF line terminators )
 # File uses personal-test-api-52a795390336.json file for logging in to Google Drive
 # Json file was generated in Google Drive API  for Personal Test API project
 #  Service Account: sfdc-reports@personal-test-api.iam.gserviceaccount.com
