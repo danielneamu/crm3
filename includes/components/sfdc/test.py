@@ -1,4 +1,3 @@
-
 # File uses personal-test-api-52a795390336.json file for logging in to Google Drive
 # Json file was generated in Google Drive API  for Personal Test API project
 #  Service Account: sfdc-reports@personal-test-api.iam.gserviceaccount.com
