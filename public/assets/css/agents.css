@@ -1,0 +1,17 @@
+table.dataTable tbody>tr.selected>* {
+    box-shadow: inset 0 0 0 9999px #198754 !important;
+    color: white !important;
+}
+
+table.dataTable.table-hover tbody>tr.selected:hover>* {
+    box-shadow: inset 0 0 0 9999px #157347 !important;
+}
+
+table.dataTable tbody>tr.selected a {
+    color: #ffc107 !important;
+    font-weight: 600;
+}
+
+table.dataTable tbody>tr.selected i {
+    color: white !important;
+}
