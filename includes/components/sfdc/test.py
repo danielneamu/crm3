@@ -1,3 +1,8 @@
+<<<<<<< HEAD
+=======
+
+text/x-generic test.py ( Python script, UTF-8 Unicode text executable, with CRLF line terminators )
+>>>>>>> dea3c39 (feat(api): Add personal-test-api.json and implement Google Drive file retrieval script)
 # File uses personal-test-api-52a795390336.json file for logging in to Google Drive
 # Json file was generated in Google Drive API  for Personal Test API project
 #  Service Account: sfdc-reports@personal-test-api.iam.gserviceaccount.com
@@ -71,4 +76,8 @@ print(df.head())
 
 # Print Refference ID values
 print("\nOpportunity refference ID values:")
+<<<<<<< HEAD
 print(df['Opportunity Reference ID'].tolist())
+=======
+print(df['Opportunity Reference ID'].tolist())
+>>>>>>> dea3c39 (feat(api): Add personal-test-api.json and implement Google Drive file retrieval script)
