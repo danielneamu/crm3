@@ -14,7 +14,7 @@
 #           Open your Google Sheet  - in our case we share the entire folder SFDC_Reports
 #           Click Share
 #           Paste the service account email and give it Editor access
-#           Saveffdsd
+#           Save
 
 
 import os
