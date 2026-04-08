@@ -8,6 +8,7 @@ from sqlalchemy import create_engine, text
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
+from datetime import datetime  # Add this to your imports at the top
 
 # --- CONFIGURATION ---
 SERVICE_ACCOUNT_FILE = 'personal-test-api.json'
@@ -167,28 +168,33 @@ def sync_to_db(df, engine):
 
 
 def main():
+    # Get current timestamp for the start of the process
+    start_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
     service = get_drive_service()
     engine = get_db_engine()
 
-    print("Downloading report.html...")
     buffer = download_from_drive(service, 'report.html')
     if not buffer:
+        print(f"[{start_time}] Error: report.html not found.")
         return
 
-    # 1. Extract links from the HTML content
+    # Extract links and data
     links = extract_links(buffer)
-
-    # 2. Parse the HTML table into a DataFrame
     buffer.seek(0)
     df = pd.read_html(buffer)[0]
 
-    print(f"Processing {len(df)} rows...")
-    # 3. Process data (now includes link mapping)
-    df = process_data(df, links)
+    # Line 1: Log the start and row count
+    print(
+        f"[{start_time}] Starting Sync: Processing {len(df)} rows from report.html...")
 
-    print("Syncing to Database (Main + Log)...")
+    # Process and Sync
+    df = process_data(df, links)
     sync_to_db(df, engine)
-    print("Process Complete.")
+
+    # Line 2: Log the completion with a fresh timestamp
+    end_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    print(f"[{end_time}] Process Complete: Database synced (Main + Log).")
 
 
 if __name__ == "__main__":
