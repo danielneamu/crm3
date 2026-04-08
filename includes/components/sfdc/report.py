@@ -1,20 +1,19 @@
 import os
 import re
 import io
-import urllib.parse  # <--- ADD THIS LINE HERE
+import urllib.parse
 import pandas as pd
+from bs4 import BeautifulSoup  # Added for link extraction
 from sqlalchemy import create_engine, text
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
 
 # --- CONFIGURATION ---
-SERVICE_ACCOUNT_FILE = 'personal-test-api.json'  # Ensure path is correct
+SERVICE_ACCOUNT_FILE = 'personal-test-api.json'
 SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
-# --- CONFIGURATION ---
 DB_USER = 'danielne_app'
-DB_PASS = urllib.parse.quote_plus(
-    'Piedone1976!!')  # <--- Wrap the password here
+DB_PASS = urllib.parse.quote_plus('Piedone1976!!')
 DB_HOST = 'localhost'
 DB_NAME = 'danielne_crm3'
 TABLE_MAIN = 'sfdc_main'
@@ -26,11 +25,8 @@ def get_drive_service():
         SERVICE_ACCOUNT_FILE, scopes=SCOPES)
     return build('drive', 'v3', credentials=creds)
 
-# --- ENGINE CREATION ---
-
 
 def get_db_engine():
-    # This creates the string: mysql+pymysql://danielne_app:Piedone1976%21%21@localhost/danielne_crm3
     return create_engine(f"mysql+pymysql://{DB_USER}:{DB_PASS}@{DB_HOST}/{DB_NAME}")
 
 
@@ -50,11 +46,25 @@ def download_from_drive(service, filename):
     fh.seek(0)
     return fh
 
+# --- LINK EXTRACTION (Imported from won.py logic) ---
+
+
+def extract_links(buffer):
+    buffer.seek(0)
+    soup = BeautifulSoup(buffer, 'html.parser')
+    links_map = {}
+    for a in soup.find_all('a', href=True):
+        match = re.search(r'(006[a-zA-Z0-9]{12,15})', a['href'])
+        if match:
+            # Map the visible text (Opp Name) to the Salesforce URL
+            links_map[a.get_text().strip(
+            )] = f"https://onesf.lightning.force.com/lightning/r/{match.group(1)}/view"
+    return links_map
+
 
 def clean_currency(x):
     if pd.isna(x) or str(x).strip() == '':
         return 0.0
-    # Removes currency symbols and commas
     clean = re.sub(r'[^\d.]', '', str(x))
     return float(clean) if clean else 0.0
 
@@ -62,9 +72,7 @@ def clean_currency(x):
 def sanitize_columns(df):
     new_cols = []
     for c in df.columns:
-        # Standardize names
-        clean = c.replace('Probability (%)',
-                          'Probability_Percent')  # Explicit fix
+        clean = c.replace('Probability (%)', 'Probability_Percent')
         clean = re.sub(r'[\s/:]+', '_', clean.strip())
         clean = re.sub(r'[^a-zA-Z0-9_]', '', clean)
         new_cols.append(clean)
@@ -72,16 +80,15 @@ def sanitize_columns(df):
     return df
 
 
-def process_data(df):
-    if 'Probability_Percent' in df.columns:
-        df['Probability_Percent'] = df['Probability_Percent'].astype(
-            str).str.replace('%', '', regex=False)
-        df['Probability_Percent'] = pd.to_numeric(
-            df['Probability_Percent'], errors='coerce').fillna(0)
-    # 1. Sanitize Names
+def process_data(df, links_map):
+    # 1. Sanitize Names FIRST so we can use 'Opportunity_Name' safely
     df = sanitize_columns(df)
 
-    # 2. Handle Dates (The "Nuclear" Fix)
+    # 2. Map the Links
+    if 'Opportunity_Name' in df.columns:
+        df['Link'] = df['Opportunity_Name'].str.strip().map(links_map)
+
+    # 3. Handle Dates
     date_patterns = ['Date', 'Close', 'Modified', 'Change']
     for col in df.columns:
         if any(p in col for p in date_patterns):
@@ -89,23 +96,27 @@ def process_data(df):
                 df[col], dayfirst=True, errors='coerce').dt.strftime('%Y-%m-%d')
             df[col] = df[col].replace('NaT', None)
 
-    # 3. Handle Currencies
+    # 4. Handle Currencies
     curr_cols = ['Amount', 'Expected_Revenue', 'Annual_Order_Value_Multi']
     for col in curr_cols:
         if col in df.columns:
             df[col] = df[col].apply(clean_currency)
 
-    # 4. Handle Percentages & Numbers
+    # 5. Handle Percentages & Numbers
     if 'Probability_Percent' in df.columns:
-        df['Probability_Percent'] = df['Probability_Percent'].str.replace(
-            '%', '', regex=False).apply(pd.to_numeric, errors='coerce').fillna(0)
+        # Check if it's already numeric or needs string cleaning
+        df['Probability_Percent'] = df['Probability_Percent'].astype(
+            str).str.replace('%', '', regex=False)
+        df['Probability_Percent'] = pd.to_numeric(
+            df['Probability_Percent'], errors='coerce').fillna(0)
+
     if 'Age' in df.columns:
         df['Age'] = pd.to_numeric(df['Age'], errors='coerce').fillna(0)
     if 'Contract_Term_Months' in df.columns:
         df['Contract_Term_Months'] = pd.to_numeric(
             df['Contract_Term_Months'], errors='coerce').fillna(0)
 
-    # 5. Static Columns
+    # 6. Static Columns
     df['Type'] = None
     df['Real_Flag'] = False
 
@@ -117,11 +128,9 @@ def sync_to_db(df, engine):
         return
 
     with engine.begin() as conn:
-        # Create staging table for the 2k row batch
         df.to_sql('staging_report', conn, if_exists='replace', index=False)
 
-        # --- STEP 1: LOG CHANGES ---
-        # We only insert into sfdc_log if the ID is new OR specific fields have changed
+        # Log changes (Note: Link is typically NOT logged, just upserted to Main)
         log_query = f"""
             INSERT INTO {TABLE_LOG} (
                 Opportunity_Reference_ID, Opportunity_Name, Fiscal_Period, Amount, 
@@ -143,7 +152,7 @@ def sync_to_db(df, engine):
         """
         conn.execute(text(log_query))
 
-        # --- STEP 2: UPSERT MAIN TABLE ---
+        # Upsert Main Table (This will now include the `Link` column automatically)
         quoted_cols = [f"`{c}`" for c in df.columns]
         update_cols = [
             f"`{c}` = VALUES(`{c}`)" for c in df.columns if c != 'Opportunity_Reference_ID']
@@ -166,10 +175,16 @@ def main():
     if not buffer:
         return
 
+    # 1. Extract links from the HTML content
+    links = extract_links(buffer)
+
+    # 2. Parse the HTML table into a DataFrame
+    buffer.seek(0)
     df = pd.read_html(buffer)[0]
 
     print(f"Processing {len(df)} rows...")
-    df = process_data(df)
+    # 3. Process data (now includes link mapping)
+    df = process_data(df, links)
 
     print("Syncing to Database (Main + Log)...")
     sync_to_db(df, engine)
