@@ -1,32 +1,16 @@
-# File uses personal-test-api-52a795390336.json file for logging in to Google Drive
-# Json file was generated in Google Drive API  for Personal Test API project
-#  Service Account: sfdc-reports@personal-test-api.iam.gserviceaccount.com
-#
-# STEPS for setup :
-# Step 1: Set Up Google Cloud Credentials
-#           Go to the Google Cloud Console and create (or select) a project
-#           Navigate to APIs & Services → Library and enable the Google Drive API
-#           Go to IAM & Admin → Service Accounts → Create Service Account
-#           After creating the account, go to its Keys tab → Add Key → Create new key → JSON
-#           Save the downloaded service-account.json securely — this is your only copy
-# Step 2: Share the Google Sheet with the Service Account
-#           Copy the service account email (e.g., [EMAIL_ADDRESS])
-#           Open your Google Sheet  - in our case we share the entire folder SFDC_Reports
-#           Click Share
-#           Paste the service account email and give it Editor access
-#           Save
-
-
 import io
 import os
 import re
 import pandas as pd
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from bs4 import BeautifulSoup
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
 from google.oauth2 import service_account
 from sqlalchemy import create_engine, text
-from datetime import datetime  # Added for timestamping
+from datetime import datetime
 
 # --- CONFIGURATION ---
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -34,32 +18,45 @@ SERVICE_ACCOUNT_FILE = os.path.join(SCRIPT_DIR, 'personal-test-api.json')
 SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
 FOLDER_ID = '18lKLBBGlfPlqKqPRR_L3PQRT9-1yWaLZ'
 
-# MySQL Config - Updated with your details
 DB_USER = 'danielne_app'
-DB_PASS = 'Piedone1976!!'  # Make sure to put your actual password here
+DB_PASS = 'Piedone1976!!'
 DB_HOST = 'localhost'
 DB_NAME = 'danielne_crm3'
 TABLE_NAME = 'sfdc_won'
 
+# Gmail SMTP Config
+GMAIL_USER = 'danielneamu@gmail.com'
+GMAIL_APP_PASS = 'gerehxqmffrrczih' # Paste your App Password without spaces
+NOTIFY_EMAIL = 'danielneamu@gmail.com'
 
 def get_db_engine():
-    # Change 'mysqlconnector' to 'pymysql'
     return create_engine(f"mysql+pymysql://{DB_USER}:{DB_PASS}@{DB_HOST}/{DB_NAME}")
-
 
 def get_drive_service():
     creds = service_account.Credentials.from_service_account_file(
         SERVICE_ACCOUNT_FILE, scopes=SCOPES)
     return build('drive', 'v3', credentials=creds)
 
+def send_notification(subject, body):
+    try:
+        msg = MIMEMultipart()
+        msg['From'] = GMAIL_USER
+        msg['To'] = NOTIFY_EMAIL
+        msg['Subject'] = subject
+        msg.attach(MIMEText(body, 'plain'))
+
+        server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
+        server.login(GMAIL_USER, GMAIL_APP_PASS)
+        server.send_message(msg)
+        server.quit()
+    except Exception as e:
+        print(f"Failed to send email: {e}")
 
 def download_from_drive(service, file_name):
     query = f"name='{file_name}' and '{FOLDER_ID}' in parents and trashed=false"
-    results = service.files().list(
-        q=query, orderBy="createdTime desc", pageSize=1).execute()
+    results = service.files().list(q=query, orderBy="createdTime desc", pageSize=1).execute()
     files = results.get('files', [])
-    if not files:
-        return None
+    if not files: return None
 
     buffer = io.BytesIO()
     request = service.files().get_media(fileId=files[0]['id'])
@@ -70,64 +67,79 @@ def download_from_drive(service, file_name):
     buffer.seek(0)
     return buffer
 
-
 def extract_links(buffer):
     soup = BeautifulSoup(buffer, 'html.parser')
     links_map = {}
     for a in soup.find_all('a', href=True):
         match = re.search(r'(006[a-zA-Z0-9]{12,15})', a['href'])
         if match:
-            links_map[a.get_text().strip(
-            )] = f"https://onesf.lightning.force.com/lightning/r/{match.group(1)}/view"
+            links_map[a.get_text().strip()] = f"https://onesf.lightning.force.com/lightning/r/{match.group(1)}/view"
     return links_map
 
-
 def clean_currency(value):
-    if pd.isna(value) or not isinstance(value, str):
-        return value
-    # Handles "EUR 1.234,56" (case-insensitive) -> 1234.56
-    clean_val = value.upper().replace('EUR', '').replace(
-        '.', '').replace(',', '.').strip()
-    try:
-        return float(clean_val)
-    except ValueError:
-        return 0.0
+    if pd.isna(value) or not isinstance(value, str): return value
+    clean_val = value.upper().replace('EUR', '').replace('.', '').replace(',', '.').strip()
+    try: return float(clean_val)
+    except ValueError: return 0.0
 
 
-def upsert_data(df, engine):
+def reconcile_and_sync(df, engine):
     if df.empty:
         return
 
-    # 1. Clean columns: Remove arrows, special chars, keep only Alphanumeric and Underscore
-    # This will turn 'Date↑' into 'Date' and 'Term (months)' into 'Term_months'
+    # 1. Clean incoming columns
     new_cols = []
     for c in df.columns:
-        clean = c.strip()
-        # Replace spaces/slashes/colons with underscore
-        clean = re.sub(r'[\s/:]+', '_', clean)
-        # Remove everything that isn't a letter, number, or underscore (removes the ↑)
+        clean = re.sub(r'[\s/:]+', '_', c.strip())
         clean = re.sub(r'[^a-zA-Z0-9_]', '', clean)
         new_cols.append(clean)
-
     df.columns = new_cols
 
     with engine.begin() as conn:
-        # Create staging table
+        # Load into staging
         df.to_sql('staging_won', conn, if_exists='replace', index=False)
 
-        # Use backticks for safety (especially for the parentheses columns)
-        quoted_cols = [f"`{c}`" for c in df.columns]
-        update_cols = [
-            f"`{c}` = VALUES(`{c}`)" for c in df.columns if c != 'Opportunity_Reference_ID']
+        result = conn.execute(text(f"SHOW COLUMNS FROM {TABLE_NAME}"))
+        db_cols = [row[0] for row in result]
+        core_cols = [c for c in df.columns if c in db_cols]
 
-        upsert_query = f"""
-            INSERT INTO {TABLE_NAME} ({', '.join(quoted_cols)})
-            SELECT * FROM staging_won
-            ON DUPLICATE KEY UPDATE {', '.join(update_cols)}
+        # --- CHANGE DETECTION LOGIC ---
+        # Look for rows in HTML that don't exist in DB (New/Split lines)
+        check_query = text(f"""
+            SELECT s.Opportunity_Reference_ID, s.Product_Name, s.Annual_Order_Value_Multi 
+            FROM staging_won s
+            WHERE NOT EXISTS (
+                SELECT 1 FROM {TABLE_NAME} m 
+                WHERE m.Opportunity_Reference_ID = s.Opportunity_Reference_ID 
+                AND m.Product_Name = s.Product_Name 
+                AND m.Annual_Order_Value_Multi = s.Annual_Order_Value_Multi
+            )
+        """)
+        new_rows = conn.execute(check_query).fetchall()
+
+        # --- EXECUTE SYNC ---
+        insert_query = f"""
+            INSERT INTO {TABLE_NAME} ({', '.join([f'`{c}`' for c in core_cols])})
+            SELECT {', '.join([f's.`{c}`' for c in core_cols])} 
+            FROM staging_won s
+            WHERE NOT EXISTS (
+                SELECT 1 FROM {TABLE_NAME} m 
+                WHERE m.Opportunity_Reference_ID = s.Opportunity_Reference_ID 
+                AND m.Product_Name = s.Product_Name 
+                AND m.Annual_Order_Value_Multi = s.Annual_Order_Value_Multi
+            )
         """
-        conn.execute(text(upsert_query))
+        conn.execute(text(insert_query))
         conn.execute(text("DROP TABLE staging_won"))
 
+        # --- SEND EMAIL ONLY IF NEW ROWS FOUND ---
+        if new_rows:
+            details = "\n".join(
+                [f"ID: {r[0]} | Product: {r[1]} | Amount: {r[2]}" for r in new_rows])
+            subject = f"CRM Alert: {len(new_rows)} New/Modified Rows Detected"
+            body = f"The following rows were added or updated in sfdc_won:\n\n{details}\n\nPlease check for manual Type assignment."
+            send_notification(subject, body)
+            print(f"Notification email sent for {len(new_rows)} rows.")
 
 def main():
     start_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -139,47 +151,32 @@ def main():
         print(f"[{start_time}] Error: won.html not found.")
         return
 
-    tables = pd.read_html(buffer)
-    if not tables:
-        print(f"[{start_time}] Error: No tables found in won.html")
-        return
+    df = pd.read_html(buffer)[0]
+    print(f"[{start_time}] Starting Won Sync: Processing {len(df)} rows...")
 
-    df = tables[0]
-
-    # Line 1: Starting log
-    print(
-        f"[{start_time}] Starting Won Sync: Processing {len(df)} rows from won.html...")
-
-    # Process Dates
+    # Date conversion
     for col in df.columns:
         if 'Date' in col:
-            df[col] = pd.to_datetime(df[col], dayfirst=True, errors='coerce')
-            df[col] = df[col].dt.strftime('%Y-%m-%d')
+            df[col] = pd.to_datetime(df[col], dayfirst=True, errors='coerce').dt.strftime('%Y-%m-%d')
             df[col] = df[col].replace('NaT', None)
 
-    # Extract & Map Links
+    # Link Mapping
     buffer.seek(0)
     links = extract_links(buffer)
     if 'Opportunity Name' in df.columns:
         df['Link'] = df['Opportunity Name'].str.strip().map(links)
 
-    # Clean Currencies
-    curr_cols = ['Annual Order Value Multi',
-                 'Product Annual Recurring Order Value', 'Product TCV']
+    # Currency Cleaning
+    curr_cols = ['Annual Order Value Multi', 'Product Annual Recurring Order Value', 'Product TCV']
     for col in curr_cols:
         if col in df.columns:
             df[col] = df[col].apply(clean_currency)
 
-    # Add Static Columns
-    df['Type'] = None
-
-    # Sync to DB
-    upsert_data(df, engine)
-
-    # Line 2: Completion log
+    # Sync
+    reconcile_and_sync(df, engine)
+    
     end_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    print(f"[{end_time}] Process Complete: won.html data upserted to MySQL.")
-
+    print(f"[{end_time}] Process Complete: Data synced and manual columns protected.")
 
 if __name__ == "__main__":
     main()
