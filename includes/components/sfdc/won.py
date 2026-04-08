@@ -26,6 +26,7 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
 from google.oauth2 import service_account
 from sqlalchemy import create_engine, text
+from datetime import datetime  # Added for timestamping
 
 # --- CONFIGURATION ---
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -129,52 +130,55 @@ def upsert_data(df, engine):
 
 
 def main():
+    start_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     service = get_drive_service()
     engine = get_db_engine()
 
     buffer = download_from_drive(service, 'won.html')
     if not buffer:
-        print("File won.html not found.")
+        print(f"[{start_time}] Error: won.html not found.")
         return
 
     tables = pd.read_html(buffer)
     if not tables:
-        print("No tables found in won.html")
+        print(f"[{start_time}] Error: No tables found in won.html")
         return
 
     df = tables[0]
 
-    # --- THE FIX: Convert Dates IMMEDIATELY ---
-    # We use a loop to find any column with 'Date' in the name to be safe
+    # Line 1: Starting log
+    print(
+        f"[{start_time}] Starting Won Sync: Processing {len(df)} rows from won.html...")
+
+    # Process Dates
     for col in df.columns:
         if 'Date' in col:
-            # 1. Parse European format
             df[col] = pd.to_datetime(df[col], dayfirst=True, errors='coerce')
-            # 2. Force to YYYY-MM-DD string immediately
             df[col] = df[col].dt.strftime('%Y-%m-%d')
-            # 3. Replace 'NaT' (Not a Time) with None for MySQL NULL
             df[col] = df[col].replace('NaT', None)
 
-    # 1. Map Links
+    # Extract & Map Links
     buffer.seek(0)
     links = extract_links(buffer)
     if 'Opportunity Name' in df.columns:
         df['Link'] = df['Opportunity Name'].str.strip().map(links)
 
-    # 2. Clean Currencies
+    # Clean Currencies
     curr_cols = ['Annual Order Value Multi',
                  'Product Annual Recurring Order Value', 'Product TCV']
     for col in curr_cols:
         if col in df.columns:
             df[col] = df[col].apply(clean_currency)
 
-    # 3. Add Extra Static Columns
+    # Add Static Columns
     df['Type'] = None
 
-    # 4. Sync to DB
-    print(f"Syncing {len(df)} rows to MySQL...")
+    # Sync to DB
     upsert_data(df, engine)
-    print("Process Complete.")
+
+    # Line 2: Completion log
+    end_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    print(f"[{end_time}] Process Complete: won.html data upserted to MySQL.")
 
 
 if __name__ == "__main__":
