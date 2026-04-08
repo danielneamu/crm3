@@ -87,10 +87,9 @@ def reconcile_and_sync(df, engine):
     if df.empty:
         return
 
-    # Clean incoming columns
+    # 1. Clean incoming columns
     new_cols = []
     for c in df.columns:
-        # Matches the logic used in sanitizer
         clean = re.sub(r'[\s/:]+', '_', c.strip())
         clean = re.sub(r'[^a-zA-Z0-9_]', '', clean)
         new_cols.append(clean)
@@ -100,15 +99,25 @@ def reconcile_and_sync(df, engine):
         # Load into staging
         df.to_sql('staging_won', conn, if_exists='replace', index=False)
 
-        # Get actual DB column list to ensure we only insert what exists
         result = conn.execute(text(f"SHOW COLUMNS FROM {TABLE_NAME}"))
         db_cols = [row[0] for row in result]
-
-        # Core columns are those present in both the HTML/Staging and the Main DB
         core_cols = [c for c in df.columns if c in db_cols]
 
-        # FIXED SQL: Using 'Product_Name' instead of 'Product'
-        # This inserts rows only if the combination of ID + Name + Amount doesn't exist
+        # --- CHANGE DETECTION LOGIC ---
+        # Look for rows in HTML that don't exist in DB (New/Split lines)
+        check_query = text(f"""
+            SELECT s.Opportunity_Reference_ID, s.Product_Name, s.Annual_Order_Value_Multi 
+            FROM staging_won s
+            WHERE NOT EXISTS (
+                SELECT 1 FROM {TABLE_NAME} m 
+                WHERE m.Opportunity_Reference_ID = s.Opportunity_Reference_ID 
+                AND m.Product_Name = s.Product_Name 
+                AND m.Annual_Order_Value_Multi = s.Annual_Order_Value_Multi
+            )
+        """)
+        new_rows = conn.execute(check_query).fetchall()
+
+        # --- EXECUTE SYNC ---
         insert_query = f"""
             INSERT INTO {TABLE_NAME} ({', '.join([f'`{c}`' for c in core_cols])})
             SELECT {', '.join([f's.`{c}`' for c in core_cols])} 
@@ -120,9 +129,17 @@ def reconcile_and_sync(df, engine):
                 AND m.Annual_Order_Value_Multi = s.Annual_Order_Value_Multi
             )
         """
-
         conn.execute(text(insert_query))
         conn.execute(text("DROP TABLE staging_won"))
+
+        # --- SEND EMAIL ONLY IF NEW ROWS FOUND ---
+        if new_rows:
+            details = "\n".join(
+                [f"ID: {r[0]} | Product: {r[1]} | Amount: {r[2]}" for r in new_rows])
+            subject = f"CRM Alert: {len(new_rows)} New/Modified Rows Detected"
+            body = f"The following rows were added or updated in sfdc_won:\n\n{details}\n\nPlease check for manual Type assignment."
+            send_notification(subject, body)
+            print(f"Notification email sent for {len(new_rows)} rows.")
 
 def main():
     start_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
