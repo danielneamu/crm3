@@ -82,58 +82,46 @@ def clean_currency(value):
     try: return float(clean_val)
     except ValueError: return 0.0
 
+
 def reconcile_and_sync(df, engine):
-    if df.empty: return
+    if df.empty:
+        return
 
     # Clean incoming columns
     new_cols = []
     for c in df.columns:
+        # Matches the logic used in sanitizer
         clean = re.sub(r'[\s/:]+', '_', c.strip())
         clean = re.sub(r'[^a-zA-Z0-9_]', '', clean)
         new_cols.append(clean)
     df.columns = new_cols
 
-    changes_detected = []
-
     with engine.begin() as conn:
         # Load into staging
         df.to_sql('staging_won', conn, if_exists='replace', index=False)
-        
-        # Get DB column list
+
+        # Get actual DB column list to ensure we only insert what exists
         result = conn.execute(text(f"SHOW COLUMNS FROM {TABLE_NAME}"))
         db_cols = [row[0] for row in result]
-        
-        # Columns to sync from HTML (Core fields)
-        # Excludes: id, Type, Revised_AOV, Revised_NPV
-        core_cols = [c for c in df.columns if c in db_cols]
-        
-        # Build Update SQL (protects manual fields)
-        update_clause = ", ".join([f"`{c}` = VALUES(`{c}`)" for c in core_cols if c != 'Opportunity_Reference_ID'])
 
-        # Identify new rows via Count Comparison on OppID + Product + Amount
-        # (This handles the identical rows scenario)
-        sync_query = f"""
+        # Core columns are those present in both the HTML/Staging and the Main DB
+        core_cols = [c for c in df.columns if c in db_cols]
+
+        # FIXED SQL: Using 'Product_Name' instead of 'Product'
+        # This inserts rows only if the combination of ID + Name + Amount doesn't exist
+        insert_query = f"""
             INSERT INTO {TABLE_NAME} ({', '.join([f'`{c}`' for c in core_cols])})
-            SELECT {', '.join([f's.`{c}`' for c in core_cols])}
-            FROM staging_report s
-            ON DUPLICATE KEY UPDATE {update_clause}
+            SELECT {', '.join([f's.`{c}`' for c in core_cols])} 
+            FROM staging_won s
+            WHERE NOT EXISTS (
+                SELECT 1 FROM {TABLE_NAME} m 
+                WHERE m.Opportunity_Reference_ID = s.Opportunity_Reference_ID 
+                AND m.Product_Name = s.Product_Name 
+                AND m.Annual_Order_Value_Multi = s.Annual_Order_Value_Multi
+            )
         """
-        # Note: Because we use Auto-Increment ID, strict DUPLICATE KEY 
-        # usually fails unless we have a unique index. 
-        # Since we want to allow identical rows, we use an INSERT logic:
-        
-        # 1. Fetch existing counts to identify if we need to add a row
-        # (Simplified for 2k rows: we use the OppID+Product+Amount count check)
-        
-        # For simplicity and manual column safety, we use the Staging -> Main transfer
-        # but avoid overwriting the manual columns
-        conn.execute(text(f"INSERT INTO {TABLE_NAME} ({', '.join([f'`{c}`' for c in core_cols])}) "
-                          f"SELECT {', '.join([f'`{c}`' for c in core_cols])} FROM staging_won s "
-                          f"WHERE NOT EXISTS (SELECT 1 FROM {TABLE_NAME} m "
-                          f"WHERE m.Opportunity_Reference_ID = s.Opportunity_Reference_ID "
-                          f"AND m.Product = s.Product "
-                          f"AND m.Annual_Order_Value_Multi = s.Annual_Order_Value_Multi)"))
-        
+
+        conn.execute(text(insert_query))
         conn.execute(text("DROP TABLE staging_won"))
 
 def main():
