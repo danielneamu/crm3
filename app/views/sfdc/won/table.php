@@ -50,8 +50,10 @@ $wonRows = $wonRows ?? [];
                             <td><?= htmlspecialchars($row['Product_Family'] ?? '') ?></td>
 
                             <td><?= htmlspecialchars($row['Created_Date'] ?? '') ?></td>
-                            <td><?= htmlspecialchars($row['Close_Date'] ?? '') ?></td>
-
+                            <td class="dt-nowrap dt-compact"
+                                data-order="<?= !empty($row['Close_Date']) ? date('Y-m-d', strtotime($row['Close_Date'])) : '' ?>">
+                                <?= htmlspecialchars($row['Close_Date_Display'] ?? $row['Close_Date'] ?? '') ?>
+                            </td>
                             <td><?= number_format((float)($row['Annual_Order_Value_Multi'] ?? 0), 2) ?></td>
                             <td><?= number_format((float)($row['Product_Annual_Recurring_Order_Value'] ?? 0), 2) ?></td>
                             <td><?= number_format((float)($row['Product_TCV'] ?? 0), 2) ?></td>
@@ -319,14 +321,10 @@ $wonRows = $wonRows ?? [];
                     responsive: false,
                     autoWidth: false,
                     order: [
-                        [0, 'desc'],
-                        [2, 'asc'],
-                        [12, 'desc'],
-                        [3, 'desc']
+                        [12, 'asc']
                     ],
                     orderFixed: [
-                        [0, 'desc'],
-                        [2, 'asc']
+                        [12, 'asc']
                     ],
                     columnDefs: [{
                             targets: [0, 1, 2],
@@ -448,6 +446,7 @@ $wonRows = $wonRows ?? [];
                     if (mode === 'none') {
                         dt.rowGroup().disable();
                         dt.order([
+                            [12, 'asc'],
                             [12, 'desc'],
                             [3, 'desc']
                         ]).draw();
@@ -461,8 +460,8 @@ $wonRows = $wonRows ?? [];
                             [0, 'desc']
                         ]);
                         dt.order([
+                            [12, 'asc'],
                             [0, 'desc'],
-                            [12, 'desc'],
                             [3, 'desc']
                         ]).draw();
                         return;
@@ -475,8 +474,8 @@ $wonRows = $wonRows ?? [];
                             [2, 'asc']
                         ]);
                         dt.order([
+                            [12, 'asc'],
                             [2, 'asc'],
-                            [12, 'desc'],
                             [3, 'desc']
                         ]).draw();
                         return;
@@ -489,9 +488,9 @@ $wonRows = $wonRows ?? [];
                         [2, 'asc']
                     ]);
                     dt.order([
+                        [12, 'asc'],
                         [0, 'desc'],
                         [2, 'asc'],
-                        [12, 'desc'],
                         [3, 'desc']
                     ]).draw();
                 }
