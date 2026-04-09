@@ -122,6 +122,16 @@
                         <i class="bi bi-folder me-1"></i>Projects
                     </a>
                 </li>
+                <!-- SFDC dropdown -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-cloud-fill me-1"></i>SFDC
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="sfdc_won.php">Won</a></li>
+                        <li><a class="dropdown-item" href="sfdc_pipeline.php">Pipeline</a></li>
+                    </ul>
+                </li>
                 <li class="nav-item">
                     <a class="nav-link" href="agents.php">
                         <i class="bi bi-people me-1"></i>Agents
@@ -198,4 +208,6 @@
     </div>
 </nav>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<?php if (empty($skipNavbarBootstrapBundle)): ?>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<?php endif; ?>
