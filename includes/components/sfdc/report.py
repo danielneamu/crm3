@@ -111,14 +111,13 @@ def process_data(df, links_map):
     date_patterns = ['Date', 'Close', 'Modified', 'Change']
     for col in df.columns:
         if any(p in col for p in date_patterns):
-            # Parse with dayfirst=True for European format (01.04.2026 = 1 April 2026)
-            # infer_datetime_format=True speeds up parsing for consistent formats
+            # Convert to string first and clean whitespace
+            df[col] = df[col].astype(str).str.strip()
+
+            # Try European format first: DD.MM.YYYY
             df[col] = pd.to_datetime(
-                df[col],
-                dayfirst=True,
-                errors='coerce',
-                cache=True
-            )
+                df[col], format='%d.%m.%Y', errors='coerce')
+
             # Convert to YYYY-MM-DD format for database
             df[col] = df[col].dt.strftime('%Y-%m-%d')
             # Replace 'NaT' strings with None (NULL in database)
