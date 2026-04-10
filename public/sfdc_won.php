@@ -223,6 +223,24 @@ $tabConfig = [
         });
     </script>
 
+
+    <div class="toast-container position-fixed top-0 start-50 p-3" style="z-index: 1080;">
+        <div id="globalToast" class="toast shadow border-0" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+                <i id="toastIcon" class="bi bi-info-circle-fill text-info me-2"></i>
+                <strong id="toastTitle" class="me-auto">Notice</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+
+            <div class="toast-body">
+                <div id="toastMessage">Message goes here.</div>
+                <div class="mt-2" style="height: 4px; background: rgba(0,0,0,0.08); border-radius: 999px; overflow: hidden;">
+                    <div id="toastProgressBar" style="height: 100%; width: 100%; background: #0dcaf0;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </body>
 
 </html>

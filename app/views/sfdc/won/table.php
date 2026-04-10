@@ -41,7 +41,13 @@ $wonRows = $wonRows ?? [];
                             <td><?= htmlspecialchars($row['Group_Team_Label'] ?? '') ?></td>
 
                             <td><?= (int)$row['id'] ?></td>
-                            <td><?= htmlspecialchars($row['Opportunity_Reference_ID'] ?? '') ?></td>
+                            <td>
+                                <?php $oppRef = trim((string)($row['Opportunity_Reference_ID'] ?? '')); ?>
+                                <?= $oppRef !== ''
+                                    ? '<span data-copy="' . htmlspecialchars($oppRef, ENT_QUOTES, 'UTF-8') . '" title="Click to copy" style="cursor: pointer;">' . htmlspecialchars($oppRef) . '</span>'
+                                    : '-' ?>
+                            </td>
+
                             <td><?= htmlspecialchars($row['Owner_Role'] ?? '') ?></td>
                             <td><?= htmlspecialchars($row['Opportunity_Owner'] ?? '') ?></td>
                             <td><?= htmlspecialchars($row['Account_Name'] ?? '') ?></td>
@@ -261,6 +267,10 @@ $wonRows = $wonRows ?? [];
         padding-left: 1rem;
     }
 </style>
+<link href="../public/assets/css/toast.css" rel="stylesheet">
+<script src="../public/assets/js/click2copy_handler.js"></script>
+<script src="../public/assets/js/toast.js"></script>
+
 
 <script>
     (function() {
