@@ -107,14 +107,22 @@ def process_data(df, links_map):
     if 'Opportunity_Name' in df.columns:
         df['Link'] = df['Opportunity_Name'].str.strip().map(links_map)
 
-    # 3. Handle Dates (European format: DD.MM.YYYY)
+    # 3. Handle Dates (European format: DD.MM.YYYY stored as DDMMYYYY in HTML)
     date_patterns = ['Date', 'Close', 'Modified', 'Change']
     for col in df.columns:
         if any(p in col for p in date_patterns):
-            # Convert to string first and clean whitespace
+            # Convert to string
             df[col] = df[col].astype(str).str.strip()
 
-            # Try European format first: DD.MM.YYYY
+            # Reconstruct dates from DDMMYYYY format (e.g., 1042026 → 01.04.2026)
+            # Pad with leading zeros if needed
+            df[col] = df[col].str.zfill(8)
+
+            # Format: DDMMYYYY → DD.MM.YYYY
+            df[col] = df[col].str[:2] + '.' + \
+                df[col].str[2:4] + '.' + df[col].str[4:8]
+
+            # Now parse with explicit format
             df[col] = pd.to_datetime(
                 df[col], format='%d.%m.%Y', errors='coerce')
 
