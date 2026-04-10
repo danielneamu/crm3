@@ -96,4 +96,32 @@ class SfdcWonController extends SfdcBaseController
             $this->jsonError('Failed to load type options: ' . $e->getMessage(), 500);
         }
     }
+
+
+
+    /**
+     * Get dashboard aggregated data for a fiscal year
+     * Called via: GET /api/sfdc_won.php?action=get_dashboard_data&fiscal_year=2026
+     */
+    public function getDashboardData()
+    {
+        $this->requireMethod('GET');
+
+        try {
+            $fiscalYear = isset($_GET['fiscal_year'])
+                ? (int)$_GET['fiscal_year']
+                : SfdcWonDashboardModel::getCurrentFiscalYear();
+
+            require_once __DIR__ . '/../models/SfdcWonDashboardModel.php';
+            $dashboardModel = new SfdcWonDashboardModel($this->conn);
+
+            $data = $dashboardModel->getDashboardData($fiscalYear);
+
+            $this->jsonSuccess($data);
+        } catch (Exception $e) {
+            $this->jsonError('Failed to load dashboard data: ' . $e->getMessage(), 500);
+        }
+    }
 }
+
+

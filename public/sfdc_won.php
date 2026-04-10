@@ -59,6 +59,11 @@ $tabConfig = [
     <!-- DataTables core bundle CSS -->
     <link href="https://cdn.datatables.net/v/bs5/jszip-3.10.1/dt-2.3.4/b-3.2.5/b-colvis-3.2.5/b-html5-3.2.5/b-print-3.2.5/cr-2.1.2/cc-1.1.1/date-1.6.1/fc-5.0.5/fh-4.0.4/r-3.0.7/sc-2.4.3/sb-1.8.4/sp-2.3.5/sl-3.1.3/sr-1.4.3/datatables.min.css" rel="stylesheet">
 
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+    
+
     <!-- RowGroup CSS only; JS must be loaded after DataTables core JS -->
     <link href="https://cdn.datatables.net/rowgroup/1.5.0/css/rowGroup.bootstrap5.min.css" rel="stylesheet">
 
@@ -112,17 +117,10 @@ $tabConfig = [
                 <?php include __DIR__ . '/../app/views/sfdc/won/table.php'; ?>
             </div>
 
-            <div
-                class="tab-pane fade"
-                id="won-dashboard-tab"
-                role="tabpanel"
-                aria-labelledby="won-dashboard-tab-button">
-                <div class="card shadow-sm border-0">
-                    <div class="card-body text-muted">
-                        Won dashboard is the next phase.
-                    </div>
-                </div>
+            <div class="tab-pane fade" id="won-dashboard-tab" role="tabpanel" aria-labelledby="won-dashboard-tab-button">
+                <?php include __DIR__ . '/../app/views/sfdc/won/dashboard.php'; ?>
             </div>
+
         </div>
     </div>
 
@@ -159,6 +157,8 @@ $tabConfig = [
             });
         });
     </script>
+
+    <script src="../app/views/sfdc/won/_dashboard.js"></script>
 </body>
 
 </html>
