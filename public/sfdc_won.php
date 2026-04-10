@@ -62,7 +62,7 @@ $tabConfig = [
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
-    
+
 
     <!-- RowGroup CSS only; JS must be loaded after DataTables core JS -->
     <link href="https://cdn.datatables.net/rowgroup/1.5.0/css/rowGroup.bootstrap5.min.css" rel="stylesheet">
@@ -79,13 +79,47 @@ $tabConfig = [
     <link href="assets/css/toast.css" rel="stylesheet">
 </head>
 <style>
-    .navbar {
-        position: relative;
-        z-index: 1050 !important;
+    .tab-content {
+        height: auto !important;
+        min-height: 400px;
+        overflow: visible !important;
     }
 
-    .navbar .dropdown-menu {
-        z-index: 2000 !important;
+    .tab-content>.tab-pane {
+        float: none !important;
+        width: 100%;
+    }
+
+    #won-dashboard-tab .card,
+    #won-dashboard-tab .card-body {
+        display: block !important;
+        width: 100%;
+        height: auto !important;
+    }
+
+    #dashboardContent {
+        display: block;
+        width: 100%;
+        min-height: 400px;
+    }
+
+    .tab-content {
+        height: auto !important;
+        min-height: 400px !important;
+        max-height: none !important;
+    }
+
+    .tab-pane {
+        height: auto !important;
+        min-height: 0 !important;
+    }
+
+    #won-dashboard-tab,
+    #won-dashboard-tab .card,
+    #won-dashboard-tab .card-body {
+        height: auto !important;
+        min-height: 0 !important;
+        display: block !important;
     }
 </style>
 
@@ -103,8 +137,14 @@ $tabConfig = [
             </div>
         </div>
 
-
-        <?php include __DIR__ . '/../app/views/sfdc/common/_tabs.php'; ?>
+        <?php
+        $tabConfig = [
+            'activeTab' => 'table',
+            'tableId' => 'won-table-tab',
+            'dashboardId' => 'won-dashboard-tab'
+        ];
+        include __DIR__ . '/../app/views/sfdc/common/_tabs.php';
+        ?>
 
         <div class="tab-content">
             <div
@@ -113,15 +153,18 @@ $tabConfig = [
                 role="tabpanel"
                 aria-labelledby="won-table-tab-button">
                 <?php include __DIR__ . '/../app/views/sfdc/common/_filters.php'; ?>
-
                 <?php include __DIR__ . '/../app/views/sfdc/won/table.php'; ?>
             </div>
 
-            <div class="tab-pane fade" id="won-dashboard-tab" role="tabpanel" aria-labelledby="won-dashboard-tab-button">
+            <div
+                class="tab-pane fade"
+                id="won-dashboard-tab"
+                role="tabpanel"
+                aria-labelledby="won-dashboard-tab-button">
                 <?php include __DIR__ . '/../app/views/sfdc/won/dashboard.php'; ?>
             </div>
-
         </div>
+
     </div>
 
 
@@ -159,6 +202,27 @@ $tabConfig = [
     </script>
 
     <script src="../app/views/sfdc/won/_dashboard.js"></script>
+
+    <script>
+        document.addEventListener('shown.bs.tab', function(event) {
+            const targetSelector = event.target.getAttribute('data-bs-target') || '';
+            const tablePane = document.getElementById('won-table-tab');
+            const dashboardPane = document.getElementById('won-dashboard-tab');
+
+            if (!tablePane || !dashboardPane) return;
+
+            if (targetSelector === '#won-dashboard-tab') {
+                dashboardPane.classList.add('active', 'show');
+                tablePane.classList.remove('active', 'show');
+            }
+
+            if (targetSelector === '#won-table-tab') {
+                tablePane.classList.add('active', 'show');
+                dashboardPane.classList.remove('active', 'show');
+            }
+        });
+    </script>
+
 </body>
 
 </html>

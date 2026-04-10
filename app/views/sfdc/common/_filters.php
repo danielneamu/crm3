@@ -193,52 +193,52 @@ function sfdcFilterSelected($key, $selected, $default = '')
 
         </form>
     </div>
-    <!-- </div>-->
+</div>
 
-    <script>
-        (function() {
-            const form = document.getElementById('sfdcFiltersForm');
-            const resetButton = document.getElementById('resetSfdcFilters');
+<script>
+    (function() {
+        const form = document.getElementById('sfdcFiltersForm');
+        const resetButton = document.getElementById('resetSfdcFilters');
 
-            if (!form) {
-                return;
+        if (!form) {
+            return;
+        }
+
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const params = new URLSearchParams(new FormData(form));
+            const cleaned = new URLSearchParams();
+
+            for (const [key, value] of params.entries()) {
+                if (value !== '') {
+                    cleaned.append(key, value);
+                }
             }
 
-            form.addEventListener('submit', function(e) {
-                e.preventDefault();
-
-                const params = new URLSearchParams(new FormData(form));
-                const cleaned = new URLSearchParams();
-
-                for (const [key, value] of params.entries()) {
-                    if (value !== '') {
-                        cleaned.append(key, value);
-                    }
+            const event = new CustomEvent('sfdcFiltersChanged', {
+                detail: {
+                    queryString: cleaned.toString(),
+                    params: Object.fromEntries(cleaned.entries())
                 }
+            });
+
+            document.dispatchEvent(event);
+        });
+
+        if (resetButton) {
+            resetButton.addEventListener('click', function() {
+                form.reset();
 
                 const event = new CustomEvent('sfdcFiltersChanged', {
                     detail: {
-                        queryString: cleaned.toString(),
-                        params: Object.fromEntries(cleaned.entries())
+                        queryString: '',
+                        params: {}
                     }
                 });
 
                 document.dispatchEvent(event);
             });
-
-            if (resetButton) {
-                resetButton.addEventListener('click', function() {
-                    form.reset();
-
-                    const event = new CustomEvent('sfdcFiltersChanged', {
-                        detail: {
-                            queryString: '',
-                            params: {}
-                        }
-                    });
-
-                    document.dispatchEvent(event);
-                });
-            }
-        })();
-    </script>
+        }
+    })();
+</script>
