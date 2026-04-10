@@ -81,76 +81,101 @@ def extract_links(buffer):
     for a in soup.find_all('a', href=True):
         match = re.search(r'(006[a-zA-Z0-9]{12,15})', a['href'])
         if match:
-            links_map[a.get_text().strip(
-            )] = f"https://onesf.lightning.force.com/lightning/r/{match.group(1)}/view"
+            links_map[a.get_text().strip()] = (
+                f"https://onesf.lightning.force.com/lightning/r/{match.group(1)}/view"
+            )
     return links_map
 
 
 def clean_currency(value):
-    if pd.isna(value) or not isinstance(value, str):
-        return value
-    clean_val = value.upper().replace('EUR', '').replace(
-        '.', '').replace(',', '.').strip()
+    if pd.isna(value):
+        return None
+
+    if isinstance(value, (int, float)):
+        return float(value)
+
+    if not isinstance(value, str):
+        return None
+
+    clean_val = value.upper().replace('EUR', '').replace(' ', '').strip()
+
+    if ',' in clean_val and '.' in clean_val:
+        clean_val = clean_val.replace('.', '').replace(',', '.')
+    else:
+        clean_val = clean_val.replace(',', '.')
+
     try:
         return float(clean_val)
     except ValueError:
-        return 0.0
+        return None
 
 
 def parse_npv_from_description(value):
-    """Parse NPV from Description text. Returns float or None."""
     if pd.isna(value) or not isinstance(value, str):
         return None
 
     text = value.strip()
     patterns = [
-        r'NPV\s*[:=]?\s*([0-9][0-9\.,]*)',
-        r'Net Present Value\s*[:=]?\s*([0-9][0-9\.,]*)',
-        r'NPV.*?([0-9][0-9\.,]*)',
-        r'([\d\.,]+)\s*EUR',
-        r'([\d\.,]+)\s*$'
+        r'NPV\s*[:=]?\s*([0-9][0-9\.,\s]*)',
+        r'Net\s*Present\s*Value\s*[:=]?\s*([0-9][0-9\.,\s]*)',
+        r'NPV.*?([0-9][0-9\.,\s]*)'
     ]
 
     for pattern in patterns:
         match = re.search(pattern, text, re.IGNORECASE)
-        if match:
-            raw = match.group(1).replace(' ', '').replace(
-                '.', '').replace(',', '.')
-            try:
-                return float(raw)
-            except ValueError:
-                continue
+        if not match:
+            continue
+
+        raw = match.group(1).replace(' ', '')
+        if ',' in raw and '.' in raw:
+            raw = raw.replace('.', '').replace(',', '.')
+        else:
+            raw = raw.replace(',', '.')
+
+        try:
+            return float(raw)
+        except ValueError:
+            continue
+
     return None
 
 
 def apply_revised_defaults(df):
-    """Pre-populate Revised AOV and Revised NPV for DB insert."""
     aov_source = 'Product Annual Recurring Order Value'
     npv_source = 'Description'
     npv_fallback = 'Product TCV'
 
-    # Revised AOV: use source if Revised_AOV is missing/zero
     if 'Revised AOV' not in df.columns:
-        df['Revised AOV'] = 0.0
-    if aov_source in df.columns:
-        mask = (df['Revised AOV'].isna() | (df['Revised AOV'] == 0))
-        df.loc[mask, 'Revised AOV'] = df.loc[mask, aov_source]
+        df['Revised AOV'] = pd.Series([None] * len(df), dtype='float64')
+    else:
+        df['Revised AOV'] = pd.to_numeric(df['Revised AOV'], errors='coerce')
 
-    # Revised NPV: parse from Description, fallback to Product TCV
     if 'Revised NPV' not in df.columns:
-        df['Revised NPV'] = 0.0
+        df['Revised NPV'] = pd.Series([None] * len(df), dtype='float64')
+    else:
+        df['Revised NPV'] = pd.to_numeric(df['Revised NPV'], errors='coerce')
+
+    if aov_source in df.columns:
+        df[aov_source] = pd.to_numeric(df[aov_source], errors='coerce')
+        revised_aov = df['Revised AOV'].copy()
+        mask_aov = revised_aov.isna() | (revised_aov == 0)
+        revised_aov = revised_aov.where(~mask_aov, df[aov_source])
+        df['Revised AOV'] = pd.to_numeric(
+            revised_aov, errors='coerce').fillna(0)
 
     if npv_source in df.columns:
         parsed_npv = df[npv_source].apply(parse_npv_from_description)
-        mask = (df['Revised NPV'].isna() | (df['Revised NPV'] == 0))
-        df.loc[mask, 'Revised NPV'] = parsed_npv.fillna(
-            df.get(npv_fallback, 0))
+        parsed_npv = pd.to_numeric(parsed_npv, errors='coerce')
 
-    # Ensure numeric
-    df['Revised AOV'] = pd.to_numeric(
-        df['Revised AOV'], errors='coerce').fillna(0)
-    df['Revised NPV'] = pd.to_numeric(
-        df['Revised NPV'], errors='coerce').fillna(0)
+        if npv_fallback in df.columns:
+            fallback_npv = pd.to_numeric(df[npv_fallback], errors='coerce')
+            parsed_npv = parsed_npv.fillna(fallback_npv)
+
+        revised_npv = df['Revised NPV'].copy()
+        mask_npv = revised_npv.isna() | (revised_npv == 0)
+        revised_npv = revised_npv.where(~mask_npv, parsed_npv)
+        df['Revised NPV'] = pd.to_numeric(
+            revised_npv, errors='coerce').fillna(0)
 
     return df
 
@@ -159,7 +184,6 @@ def reconcile_and_sync(df, engine):
     if df.empty:
         return
 
-    # Clean incoming columns
     new_cols = []
     for c in df.columns:
         clean = re.sub(r'[\s/:]+', '_', c.strip())
@@ -168,48 +192,49 @@ def reconcile_and_sync(df, engine):
     df.columns = new_cols
 
     with engine.begin() as conn:
-        # Load into staging
         df.to_sql('staging_won', conn, if_exists='replace', index=False)
 
-        # Get DB columns
         result = conn.execute(text(f"SHOW COLUMNS FROM {TABLE_NAME}"))
         db_cols = [row[0] for row in result]
         core_cols = [c for c in df.columns if c in db_cols]
 
-        # Detect new/modified rows
         check_query = text(f"""
-            SELECT s.Opportunity_Reference_ID, s.Product_Name, s.Annual_Order_Value_Multi 
+            SELECT s.Opportunity_Reference_ID, s.Product_Name, s.Annual_Order_Value_Multi
             FROM staging_won s
             WHERE NOT EXISTS (
-                SELECT 1 FROM {TABLE_NAME} m 
-                WHERE m.Opportunity_Reference_ID = s.Opportunity_Reference_ID 
-                AND m.Product_Name = s.Product_Name 
-                AND m.Annual_Order_Value_Multi = s.Annual_Order_Value_Multi
+                SELECT 1
+                FROM {TABLE_NAME} m
+                WHERE m.Opportunity_Reference_ID = s.Opportunity_Reference_ID
+                  AND m.Product_Name = s.Product_Name
+                  AND m.Annual_Order_Value_Multi = s.Annual_Order_Value_Multi
             )
         """)
         new_rows = conn.execute(check_query).fetchall()
 
-        # Insert new rows only (preserves manual edits on existing rows)
         insert_query = f"""
             INSERT INTO {TABLE_NAME} ({', '.join([f'`{c}`' for c in core_cols])})
-            SELECT {', '.join([f's.`{c}`' for c in core_cols])} 
+            SELECT {', '.join([f's.`{c}`' for c in core_cols])}
             FROM staging_won s
             WHERE NOT EXISTS (
-                SELECT 1 FROM {TABLE_NAME} m 
-                WHERE m.Opportunity_Reference_ID = s.Opportunity_Reference_ID 
-                AND m.Product_Name = s.Product_Name 
-                AND m.Annual_Order_Value_Multi = s.Annual_Order_Value_Multi
+                SELECT 1
+                FROM {TABLE_NAME} m
+                WHERE m.Opportunity_Reference_ID = s.Opportunity_Reference_ID
+                  AND m.Product_Name = s.Product_Name
+                  AND m.Annual_Order_Value_Multi = s.Annual_Order_Value_Multi
             )
         """
         conn.execute(text(insert_query))
         conn.execute(text("DROP TABLE staging_won"))
 
-        # Notify only if new rows
         if new_rows:
             details = "\n".join(
-                [f"ID: {r[0]} | Product: {r[1]} | Amount: {r[2]}" for r in new_rows])
+                [f"ID: {r[0]} | Product: {r[1]} | Amount: {r[2]}" for r in new_rows]
+            )
             subject = f"CRM Alert: {len(new_rows)} New/Modified Won Rows"
-            body = f"Added/updated rows in sfdc_won:\n\n{details}\n\nCheck Type assignments."
+            body = (
+                f"Added/updated rows in sfdc_won:\n\n{details}\n\n"
+                f"Check Type assignments."
+            )
             send_notification(subject, body)
             print(f"Notification sent for {len(new_rows)} rows.")
 
@@ -229,32 +254,30 @@ def main():
     df = pd.read_html(buffer)[0]
     print(f"[{start_time}] Won Sync: Processing {len(df)} rows...")
 
-    # Date conversion
     for col in df.columns:
         if 'Date' in col:
             df[col] = pd.to_datetime(
                 df[col], dayfirst=True, errors='coerce').dt.strftime('%Y-%m-%d')
             df[col] = df[col].replace('NaT', None)
 
-    # Link mapping
     buffer.seek(0)
     links = extract_links(buffer)
     if 'Opportunity Name' in df.columns:
         df['Link'] = df['Opportunity Name'].str.strip().map(links)
 
-    # Currency cleaning
     curr_cols = ['Annual Order Value Multi',
                  'Product Annual Recurring Order Value', 'Product TCV']
     for col in curr_cols:
         if col in df.columns:
             df[col] = df[col].apply(clean_currency)
 
-    # NEW: Pre-populate Revised AOV/NPV before DB sync
     df = apply_revised_defaults(df)
-    print(
-        f"Pre-populated {df['Revised AOV'].notna().sum()} AOV and {df['Revised NPV'].notna().sum()} NPV values.")
 
-    # Sync to DB
+    print(
+        f"Pre-populated Revised AOV for {(df['Revised AOV'] > 0).sum()} rows "
+        f"and Revised NPV for {(df['Revised NPV'] > 0).sum()} rows."
+    )
+
     reconcile_and_sync(df, engine)
 
     end_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
