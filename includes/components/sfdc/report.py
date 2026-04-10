@@ -66,8 +66,26 @@ def extract_links(buffer):
 def clean_currency(x):
     if pd.isna(x) or str(x).strip() == '':
         return 0.0
-    clean = re.sub(r'[^\d.]', '', str(x))
-    return float(clean) if clean else 0.0
+
+    # 1. Convert to string and remove currency codes/spaces
+    s = str(x).strip().upper()
+    s = re.sub(r'[A-Z\s]', '', s)  # Removes "EUR", "USD", and spaces
+
+    # 2. Handle European formatting: 21.600,00 -> 21600.00
+    # We remove the dot (thousands) and replace the comma (decimal) with a dot
+    if ',' in s and '.' in s:
+        s = s.replace('.', '').replace(',', '.')
+    elif ',' in s:
+        # Case where it's just "21,60" (no thousands separator)
+        s = s.replace(',', '.')
+
+    # 3. Final safety: remove anything that isn't a digit or a single dot
+    clean = re.sub(r'[^\d.]', '', s)
+
+    try:
+        return float(clean) if clean else 0.0
+    except ValueError:
+        return 0.0
 
 
 def sanitize_columns(df):
@@ -182,8 +200,8 @@ def main():
     # Extract links and data
     links = extract_links(buffer)
     buffer.seek(0)
-    df = pd.read_html(buffer)[0]
-
+    df = pd.read_html(buffer, decimal=',', thousands='.')[0]
+    
     # Line 1: Log the start and row count
     print(
         f"[{start_time}] Starting Sync: Processing {len(df)} rows from report.html...")
