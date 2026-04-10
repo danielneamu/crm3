@@ -12,7 +12,6 @@ from google.oauth2 import service_account
 from sqlalchemy import create_engine, text
 from datetime import datetime
 
-
 # --- CONFIGURATION ---
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 SERVICE_ACCOUNT_FILE = os.path.join(SCRIPT_DIR, 'personal-test-api.json')
@@ -27,19 +26,16 @@ TABLE_NAME = 'sfdc_won'
 
 # Gmail SMTP Config
 GMAIL_USER = 'danielneamu@gmail.com'
-GMAIL_APP_PASS = 'gerehxqmffrrczih'
+GMAIL_APP_PASS = 'gerehxqmffrrczih' # Paste your App Password without spaces
 NOTIFY_EMAIL = 'danielneamu@gmail.com'
-
 
 def get_db_engine():
     return create_engine(f"mysql+pymysql://{DB_USER}:{DB_PASS}@{DB_HOST}/{DB_NAME}")
-
 
 def get_drive_service():
     creds = service_account.Credentials.from_service_account_file(
         SERVICE_ACCOUNT_FILE, scopes=SCOPES)
     return build('drive', 'v3', credentials=creds)
-
 
 def send_notification(subject, body):
     try:
@@ -56,14 +52,11 @@ def send_notification(subject, body):
     except Exception as e:
         print(f"Failed to send email: {e}")
 
-
 def download_from_drive(service, file_name):
     query = f"name='{file_name}' and '{FOLDER_ID}' in parents and trashed=false"
-    results = service.files().list(
-        q=query, orderBy="createdTime desc", pageSize=1).execute()
+    results = service.files().list(q=query, orderBy="createdTime desc", pageSize=1).execute()
     files = results.get('files', [])
-    if not files:
-        return None
+    if not files: return None
 
     buffer = io.BytesIO()
     request = service.files().get_media(fileId=files[0]['id'])
@@ -74,92 +67,27 @@ def download_from_drive(service, file_name):
     buffer.seek(0)
     return buffer
 
-
 def extract_links(buffer):
     soup = BeautifulSoup(buffer, 'html.parser')
     links_map = {}
     for a in soup.find_all('a', href=True):
         match = re.search(r'(006[a-zA-Z0-9]{12,15})', a['href'])
         if match:
-            links_map[a.get_text().strip(
-            )] = f"https://onesf.lightning.force.com/lightning/r/{match.group(1)}/view"
+            links_map[a.get_text().strip()] = f"https://onesf.lightning.force.com/lightning/r/{match.group(1)}/view"
     return links_map
 
-
 def clean_currency(value):
-    if pd.isna(value) or not isinstance(value, str):
-        return value
-    clean_val = value.upper().replace('EUR', '').replace(
-        '.', '').replace(',', '.').strip()
-    try:
-        return float(clean_val)
-    except ValueError:
-        return 0.0
-
-
-def parse_npv_from_description(value):
-    """Parse NPV from Description text. Returns float or None."""
-    if pd.isna(value) or not isinstance(value, str):
-        return None
-
-    text = value.strip()
-    patterns = [
-        r'NPV\s*[:=]?\s*([0-9][0-9\.,]*)',
-        r'Net Present Value\s*[:=]?\s*([0-9][0-9\.,]*)',
-        r'NPV.*?([0-9][0-9\.,]*)',
-        r'([\d\.,]+)\s*EUR',
-        r'([\d\.,]+)\s*$'
-    ]
-
-    for pattern in patterns:
-        match = re.search(pattern, text, re.IGNORECASE)
-        if match:
-            raw = match.group(1).replace(' ', '').replace(
-                '.', '').replace(',', '.')
-            try:
-                return float(raw)
-            except ValueError:
-                continue
-    return None
-
-
-def apply_revised_defaults(df):
-    """Pre-populate Revised AOV and Revised NPV for DB insert."""
-    aov_source = 'Product Annual Recurring Order Value'
-    npv_source = 'Description'
-    npv_fallback = 'Product TCV'
-
-    # Revised AOV: use source if Revised_AOV is missing/zero
-    if 'Revised AOV' not in df.columns:
-        df['Revised AOV'] = 0.0
-    if aov_source in df.columns:
-        mask = (df['Revised AOV'].isna() | (df['Revised AOV'] == 0))
-        df.loc[mask, 'Revised AOV'] = df.loc[mask, aov_source]
-
-    # Revised NPV: parse from Description, fallback to Product TCV
-    if 'Revised NPV' not in df.columns:
-        df['Revised NPV'] = 0.0
-
-    if npv_source in df.columns:
-        parsed_npv = df[npv_source].apply(parse_npv_from_description)
-        mask = (df['Revised NPV'].isna() | (df['Revised NPV'] == 0))
-        df.loc[mask, 'Revised NPV'] = parsed_npv.fillna(
-            df.get(npv_fallback, 0))
-
-    # Ensure numeric
-    df['Revised AOV'] = pd.to_numeric(
-        df['Revised AOV'], errors='coerce').fillna(0)
-    df['Revised NPV'] = pd.to_numeric(
-        df['Revised NPV'], errors='coerce').fillna(0)
-
-    return df
+    if pd.isna(value) or not isinstance(value, str): return value
+    clean_val = value.upper().replace('EUR', '').replace('.', '').replace(',', '.').strip()
+    try: return float(clean_val)
+    except ValueError: return 0.0
 
 
 def reconcile_and_sync(df, engine):
     if df.empty:
         return
 
-    # Clean incoming columns
+    # 1. Clean incoming columns
     new_cols = []
     for c in df.columns:
         clean = re.sub(r'[\s/:]+', '_', c.strip())
@@ -171,12 +99,12 @@ def reconcile_and_sync(df, engine):
         # Load into staging
         df.to_sql('staging_won', conn, if_exists='replace', index=False)
 
-        # Get DB columns
         result = conn.execute(text(f"SHOW COLUMNS FROM {TABLE_NAME}"))
         db_cols = [row[0] for row in result]
         core_cols = [c for c in df.columns if c in db_cols]
 
-        # Detect new/modified rows
+        # --- CHANGE DETECTION LOGIC ---
+        # Look for rows in HTML that don't exist in DB (New/Split lines)
         check_query = text(f"""
             SELECT s.Opportunity_Reference_ID, s.Product_Name, s.Annual_Order_Value_Multi 
             FROM staging_won s
@@ -189,7 +117,7 @@ def reconcile_and_sync(df, engine):
         """)
         new_rows = conn.execute(check_query).fetchall()
 
-        # Insert new rows only (preserves manual edits on existing rows)
+        # --- EXECUTE SYNC ---
         insert_query = f"""
             INSERT INTO {TABLE_NAME} ({', '.join([f'`{c}`' for c in core_cols])})
             SELECT {', '.join([f's.`{c}`' for c in core_cols])} 
@@ -204,17 +132,14 @@ def reconcile_and_sync(df, engine):
         conn.execute(text(insert_query))
         conn.execute(text("DROP TABLE staging_won"))
 
-        # Notify only if new rows
+        # --- SEND EMAIL ONLY IF NEW ROWS FOUND ---
         if new_rows:
             details = "\n".join(
                 [f"ID: {r[0]} | Product: {r[1]} | Amount: {r[2]}" for r in new_rows])
-            subject = f"CRM Alert: {len(new_rows)} New/Modified Won Rows"
-            body = f"Added/updated rows in sfdc_won:\n\n{details}\n\nCheck Type assignments."
+            subject = f"CRM Alert: {len(new_rows)} New/Modified Rows Detected"
+            body = f"The following rows were added or updated in sfdc_won:\n\n{details}\n\nPlease check for manual Type assignment."
             send_notification(subject, body)
-            print(f"Notification sent for {len(new_rows)} rows.")
-
-        print(f"Sync complete: {len(new_rows)} new rows inserted.")
-
+            print(f"Notification email sent for {len(new_rows)} rows.")
 
 def main():
     start_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -227,39 +152,31 @@ def main():
         return
 
     df = pd.read_html(buffer)[0]
-    print(f"[{start_time}] Won Sync: Processing {len(df)} rows...")
+    print(f"[{start_time}] Starting Won Sync: Processing {len(df)} rows...")
 
     # Date conversion
     for col in df.columns:
         if 'Date' in col:
-            df[col] = pd.to_datetime(
-                df[col], dayfirst=True, errors='coerce').dt.strftime('%Y-%m-%d')
+            df[col] = pd.to_datetime(df[col], dayfirst=True, errors='coerce').dt.strftime('%Y-%m-%d')
             df[col] = df[col].replace('NaT', None)
 
-    # Link mapping
+    # Link Mapping
     buffer.seek(0)
     links = extract_links(buffer)
     if 'Opportunity Name' in df.columns:
         df['Link'] = df['Opportunity Name'].str.strip().map(links)
 
-    # Currency cleaning
-    curr_cols = ['Annual Order Value Multi',
-                 'Product Annual Recurring Order Value', 'Product TCV']
+    # Currency Cleaning
+    curr_cols = ['Annual Order Value Multi', 'Product Annual Recurring Order Value', 'Product TCV']
     for col in curr_cols:
         if col in df.columns:
             df[col] = df[col].apply(clean_currency)
 
-    # NEW: Pre-populate Revised AOV/NPV before DB sync
-    df = apply_revised_defaults(df)
-    print(
-        f"Pre-populated {df['Revised AOV'].notna().sum()} AOV and {df['Revised NPV'].notna().sum()} NPV values.")
-
-    # Sync to DB
+    # Sync
     reconcile_and_sync(df, engine)
-
+    
     end_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    print(f"[{end_time}] Complete: Revised fields pre-populated and data synced.")
-
+    print(f"[{end_time}] Process Complete: Data synced and manual columns protected.")
 
 if __name__ == "__main__":
     main()
