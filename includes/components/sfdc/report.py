@@ -115,7 +115,6 @@ def process_data(df, links_map):
                 df[col], 
                 dayfirst=True, 
                 errors='coerce', 
-                format='mixed'  # This silences the warning and handles inconsistent strings
             ).dt.strftime('%Y-%m-%d')
             df[col] = df[col].replace('NaT', None)
 
