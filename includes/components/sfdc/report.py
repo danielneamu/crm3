@@ -117,7 +117,7 @@ def process_data(df, links_map):
                 df[col],
                 dayfirst=True,
                 errors='coerce',
-                infer_datetime_format=True
+                cache=True
             )
             # Convert to YYYY-MM-DD format for database
             df[col] = df[col].dt.strftime('%Y-%m-%d')
