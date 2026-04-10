@@ -112,7 +112,11 @@ def process_data(df, links_map):
     for col in df.columns:
         if any(p in col for p in date_patterns):
             df[col] = pd.to_datetime(
-                df[col], dayfirst=True, errors='coerce').dt.strftime('%Y-%m-%d')
+                df[col], 
+                dayfirst=True, 
+                errors='coerce', 
+                format='mixed'  # This silences the warning and handles inconsistent strings
+            ).dt.strftime('%Y-%m-%d')
             df[col] = df[col].replace('NaT', None)
 
     # 4. Handle Currencies
