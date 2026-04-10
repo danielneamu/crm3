@@ -132,9 +132,9 @@
         teams.forEach(function (team, index) {
             const values =
                 data.data &&
-                data.data[type] &&
-                data.data[type][metricKey] &&
-                data.data[type][metricKey][team]
+                    data.data[type] &&
+                    data.data[type][metricKey] &&
+                    data.data[type][metricKey][team]
                     ? data.data[type][metricKey][team]
                     : [];
 
