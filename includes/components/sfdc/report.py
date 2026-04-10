@@ -107,15 +107,21 @@ def process_data(df, links_map):
     if 'Opportunity_Name' in df.columns:
         df['Link'] = df['Opportunity_Name'].str.strip().map(links_map)
 
-    # 3. Handle Dates
+    # 3. Handle Dates (European format: DD.MM.YYYY)
     date_patterns = ['Date', 'Close', 'Modified', 'Change']
     for col in df.columns:
         if any(p in col for p in date_patterns):
+            # Parse with dayfirst=True for European format (01.04.2026 = 1 April 2026)
+            # infer_datetime_format=True speeds up parsing for consistent formats
             df[col] = pd.to_datetime(
-                df[col], 
-                dayfirst=True, 
-                errors='coerce', 
-            ).dt.strftime('%Y-%m-%d')
+                df[col],
+                dayfirst=True,
+                errors='coerce',
+                infer_datetime_format=True
+            )
+            # Convert to YYYY-MM-DD format for database
+            df[col] = df[col].dt.strftime('%Y-%m-%d')
+            # Replace 'NaT' strings with None (NULL in database)
             df[col] = df[col].replace('NaT', None)
 
     # 4. Handle Currencies
