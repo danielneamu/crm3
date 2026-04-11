@@ -11,7 +11,11 @@ from googleapiclient.http import MediaIoBaseDownload
 from datetime import datetime  # Add this to your imports at the top
 
 # --- CONFIGURATION ---
-SERVICE_ACCOUNT_FILE = 'personal-test-api.json'
+# --- CONFIGURATION ---
+# Get the directory where the script itself is located
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+# Construct the absolute path to the JSON file
+SERVICE_ACCOUNT_FILE = os.path.join(SCRIPT_DIR, 'personal-test-api.json')
 SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
 DB_USER = 'danielne_app'
 DB_PASS = urllib.parse.quote_plus('Piedone1976!!')
