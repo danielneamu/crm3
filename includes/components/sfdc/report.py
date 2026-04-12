@@ -32,7 +32,7 @@ def get_drive_service():
 
 
 def get_db_engine():
-    return create_engine(f"mysql+pymysql://{DB_USER}:{DB_PASS}@{DB_HOST}/{DB_NAME}")
+    return create_engine(f"mysql+pymysql://{DB_USER}:{DB_PASS}@{DB_HOST}/{DB_NAME}?charset=utf8mb4")
 
 
 def download_from_drive(service, filename):

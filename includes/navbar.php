@@ -129,6 +129,7 @@
                     </a>
                     <ul class="dropdown-menu">
                         <li><a class="dropdown-item" href="sfdc_won.php">Won</a></li>
+                        <li><a class="dropdown-item" href="sfdc_product_pipeline.php">Products Pipeline</a></li>
                         <li><a class="dropdown-item" href="sfdc_pipeline.php">Pipeline</a></li>
                     </ul>
                 </li>
