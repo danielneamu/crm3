@@ -286,47 +286,19 @@
                 return 0;
             }
 
-            const text = String(value).trim();
-            const stripped = text.replace(/<[^>]*>/g, '').trim();
+            const stripped = String(value)
+                .replace(/<[^>]*>/g, '')
+                .replace(/,/g, '')
+                .replace(/[^\d.-]/g, '')
+                .trim();
 
-            if (stripped === '') {
+            if (stripped === '' || stripped === '-' || stripped === '.' || stripped === '-.') {
                 return 0;
             }
 
-            const match = stripped.match(/-?(?:\d{1,3}(?:[.,]\d{3})+|\d+)(?:[.,]\d+)?/);
-
-            if (!match) {
-                return 0;
-            }
-
-            let numStr = match[0];
-
-            const lastDot = numStr.lastIndexOf('.');
-            const lastComma = numStr.lastIndexOf(',');
-
-            if (lastDot !== -1 && lastComma !== -1) {
-                if (lastComma > lastDot) {
-                    numStr = numStr.replace(/\./g, '').replace(',', '.');
-                } else {
-                    numStr = numStr.replace(/,/g, '');
-                }
-            } else if (lastComma !== -1) {
-                const afterComma = numStr.substring(lastComma + 1);
-                if (afterComma.length <= 2) {
-                    numStr = numStr.replace(',', '.');
-                } else {
-                    numStr = numStr.replace(/,/g, '');
-                }
-            } else if (lastDot !== -1) {
-                const afterDot = numStr.substring(lastDot + 1);
-                if (afterDot.length > 2) {
-                    numStr = numStr.replace(/\./g, '');
-                }
-            }
-
-            const number = parseFloat(numStr);
+            const number = parseFloat(stripped);
             return isNaN(number) ? 0 : number;
-        }, 
+        },
 
         formatAmount: function (value) {
             return new Intl.NumberFormat('en-US', {
@@ -337,9 +309,12 @@
 
         sumColumnFromRows: function (rows, columnIndex) {
             let total = 0;
-            rows.nodes().each((row) => {
+            rows.nodes().each((row, i) => {
                 const cell = row.cells[columnIndex];
-                total += this.parseAmount(cell ? cell.textContent : 0);
+                const raw = cell ? cell.textContent : '';
+                const parsed = this.parseAmount(raw);
+
+                total += parsed;
             });
             return total;
         },

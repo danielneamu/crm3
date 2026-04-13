@@ -225,40 +225,17 @@ $productRows = $productRows ?? [];
                 return 0;
             }
 
-            const text = String(value).trim();
-            const stripped = text.replace(/<[^>]*>/g, '').trim();
+            const stripped = String(value)
+                .replace(/<[^>]*>/g, '')
+                .replace(/,/g, '')
+                .replace(/[^\d.-]/g, '')
+                .trim();
 
-            if (stripped === '') {
+            if (stripped === '' || stripped === '-' || stripped === '.' || stripped === '-.') {
                 return 0;
             }
 
-            const match = stripped.match(/-?(?:\d{1,3}(?:[.,]\d{3})+|\d+)(?:[.,]\d+)?/);
-
-            if (!match) {
-                return 0;
-            }
-
-            let numStr = match[0];
-
-            const lastDot = numStr.lastIndexOf('.');
-            const lastComma = numStr.lastIndexOf(',');
-
-            if (lastDot !== -1 && lastComma !== -1) {
-                if (lastComma > lastDot) {
-                    numStr = numStr.replace('.', '').replace(',', '.');
-                } else {
-                    numStr = numStr.replace(',', '');
-                }
-            } else if (lastComma !== -1) {
-                const afterComma = numStr.substring(lastComma + 1);
-                if (afterComma.length <= 2) {
-                    numStr = numStr.replace(',', '.');
-                } else {
-                    numStr = numStr.replace(',', '');
-                }
-            }
-
-            const number = parseFloat(numStr);
+            const number = parseFloat(stripped);
             return isNaN(number) ? 0 : number;
         }
 
@@ -271,12 +248,13 @@ $productRows = $productRows ?? [];
 
         function sumColumnFromRows(rows, columnIndex) {
             let total = 0;
-
-            rows.nodes().each(function(row) {
+            rows.nodes().each((row, i) => {
                 const cell = row.cells[columnIndex];
-                total += parseAmount(cell ? cell.textContent : 0);
-            });
+                const raw = cell ? cell.textContent : '';
+                const parsed = parseAmount(raw);
 
+                total += parsed;
+            });
             return total;
         }
 
