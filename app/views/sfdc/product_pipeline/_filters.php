@@ -4,7 +4,7 @@ $filterConfig = $filterConfig ?? [];
 $showTeam         = $filterConfig['showTeam'] ?? true;
 $showAgent        = $filterConfig['showAgent'] ?? true;
 $showMonth        = $filterConfig['showMonth'] ?? true;
-$showQuarter      = $filterConfig['showQuarter'] ?? true;
+$showQuarter      = $filterConfig['showQuarter'] ?? false;  // REMOVED: Quarter is redundant with Fiscal Period
 $showFiscalPeriod = $filterConfig['showFiscalPeriod'] ?? true;
 $showYear         = $filterConfig['showYear'] ?? true;
 $showProductFamily = $filterConfig['showProductFamily'] ?? true;
@@ -14,6 +14,7 @@ $teams         = $filterConfig['teams'] ?? [];
 $agents        = $filterConfig['agents'] ?? [];
 $fiscalPeriods = $filterConfig['fiscalPeriods'] ?? [];
 $productFamilies = $filterConfig['productFamilies'] ?? [];
+$stages        = $filterConfig['stages'] ?? [];
 $selected      = $filterConfig['selected'] ?? [];
 
 function productFilterSelected($key, $selected, $default = '')
@@ -93,13 +94,15 @@ function productFilterSelected($key, $selected, $default = '')
             <?php if ($showStage): ?>
                 <div class="col-md-1 col-sm-6">
                     <label for="filter_stage_product" class="form-label mb-1">Stage</label>
-                    <input
-                        type="text"
-                        id="filter_stage_product"
-                        name="stage"
-                        class="form-control form-control-sm"
-                        value="<?= htmlspecialchars(productFilterSelected('stage', $selected)) ?>"
-                        placeholder="e.g., Identify">
+                    <select id="filter_stage_product" name="stage" class="form-select form-select-sm">
+                        <option value="">All Stages</option>
+                        <?php foreach ($stages as $stage): ?>
+                            <option value="<?= htmlspecialchars($stage) ?>"
+                                <?= productFilterSelected('stage', $selected) === (string)$stage ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($stage) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
                 </div>
             <?php endif; ?>
 

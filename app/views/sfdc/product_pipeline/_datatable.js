@@ -13,6 +13,7 @@
 
     const ProductPipelineTable = {
         dt: null,
+        currentGroupingMode: 'month_team',  // Track active grouping mode
 
         init: function () {
             const tableEl = $('#sfdcProductPipelineTable');
@@ -141,6 +142,7 @@
                 return;
             }
 
+            this.currentGroupingMode = mode;  // Store the active mode
             const self = this;
 
             switch (mode) {
@@ -150,39 +152,38 @@
                     break;
 
                 case 'month':
-                    this.dt.rowGroup().dataSrc(1);
+                    this.dt.rowGroup().dataSrc(1);  // Column 1: Group_Month_Label
                     this.dt.rowGroup().enable();
-                    this.dt.order.fixed([[0, 'desc']]);
-                    this.dt.order([[14, 'asc'], [0, 'desc'], [5, 'desc']]).draw();
+                    this.dt.order.fixed([[1, 'asc']]);
+                    this.dt.order([[1, 'asc'], [14, 'asc'], [5, 'desc']]).draw();
                     break;
 
                 case 'team':
-                    this.dt.rowGroup().dataSrc(2);
+                    this.dt.rowGroup().dataSrc(2);  // Column 2: Group_Team_Label
                     this.dt.rowGroup().enable();
                     this.dt.order.fixed([[2, 'asc']]);
-                    this.dt.order([[14, 'asc'], [2, 'asc'], [5, 'desc']]).draw();
-                    console.log('Applied team grouping');
+                    this.dt.order([[2, 'asc'], [14, 'asc'], [5, 'desc']]).draw();
                     break;
 
                 case 'family':
-                    this.dt.rowGroup().dataSrc(3);
+                    this.dt.rowGroup().dataSrc(3);  // Column 3: Group_Product_Label
                     this.dt.rowGroup().enable();
                     this.dt.order.fixed([[3, 'asc']]);
-                    this.dt.order([[14, 'asc'], [3, 'asc'], [5, 'desc']]).draw();
+                    this.dt.order([[3, 'asc'], [14, 'asc'], [5, 'desc']]).draw();
                     break;
 
                 case 'month_team':
-                    this.dt.rowGroup().dataSrc([1, 2]);
+                    this.dt.rowGroup().dataSrc([1, 2]);  // Columns 1 & 2
                     this.dt.rowGroup().enable();
-                    this.dt.order.fixed([[0, 'desc'], [2, 'asc']]);
-                    this.dt.order([[14, 'asc'], [0, 'desc'], [2, 'asc'], [5, 'desc']]).draw();
+                    this.dt.order.fixed([[1, 'asc'], [2, 'asc']]);
+                    this.dt.order([[1, 'asc'], [2, 'asc'], [14, 'asc'], [5, 'desc']]).draw();
                     break;
 
                 case 'month_family':
-                    this.dt.rowGroup().dataSrc([1, 3]);
+                    this.dt.rowGroup().dataSrc([1, 3]);  // Columns 1 & 3
                     this.dt.rowGroup().enable();
-                    this.dt.order.fixed([[0, 'desc'], [3, 'asc']]);
-                    this.dt.order([[14, 'asc'], [0, 'desc'], [3, 'asc'], [5, 'desc']]).draw();
+                    this.dt.order.fixed([[1, 'asc'], [3, 'asc']]);
+                    this.dt.order([[1, 'asc'], [3, 'asc'], [14, 'asc'], [5, 'desc']]).draw();
                     break;
 
                 default:
@@ -194,54 +195,57 @@
 
         renderGroupStart: function (rows, group, level) {
             const colspan = 24;
+            const mode = this.currentGroupingMode;
 
-            if (level === 0) {
-                return $('<tr/>')
-                    .addClass('dtrg-level-0')
-                    .append(
-                        $('<td/>', {
-                            colspan: colspan,
-                            html: 'Month: <strong>' + this.escapeHtml(group) + '</strong> ' +
-                                '<span class="text-muted">(' + rows.count() + ' rows)</span>'
-                        })
-                    );
+            // Determine label based on CURRENT grouping mode, not level
+            let label = 'Group';
+
+            if (mode === 'none') {
+                return $('<tr/>');  // No grouping
             }
 
-            if (level === 1) {
-                return $('<tr/>')
-                    .addClass('dtrg-level-1')
-                    .append(
-                        $('<td/>', {
-                            colspan: colspan,
-                            html: 'Team: <strong>' + this.escapeHtml(group) + '</strong> ' +
-                                '<span class="text-muted">(' + rows.count() + ' rows)</span>'
-                        })
-                    );
+            if (mode === 'month') {
+                label = 'Month';
+            } else if (mode === 'team') {
+                label = 'Team';
+            } else if (mode === 'family') {
+                label = 'Family';
+            } else if (mode === 'month_team') {
+                // Multi-level: level 0 = Month, level 1 = Team
+                label = level === 0 ? 'Month' : 'Team';
+            } else if (mode === 'month_family') {
+                // Multi-level: level 0 = Month, level 1 = Family
+                label = level === 0 ? 'Month' : 'Family';
             }
 
             return $('<tr/>')
-                .addClass('dtrg-level-2')
+                .addClass('dtrg-level-' + level)
                 .append(
                     $('<td/>', {
                         colspan: colspan,
-                        html: 'Family: <strong>' + this.escapeHtml(group) + '</strong> ' +
+                        html: label + ': <strong>' + this.escapeHtml(group) + '</strong> ' +
                             '<span class="text-muted">(' + rows.count() + ' rows)</span>'
                     })
                 );
         },
 
         renderGroupEnd: function (rows, group, level) {
-            const arrovTotal = this.sumColumnFromRows(rows, 18);
-            const aovMultiTotal = this.sumColumnFromRows(rows, 19);
+            const arrovTotal = this.sumColumnFromRows(rows, 14);
+            const aovMultiTotal = this.sumColumnFromRows(rows, 15);
+            const mode = this.currentGroupingMode;
 
             let label = 'Subtotal';
 
-            if (level === 0) {
+            if (mode === 'month') {
                 label = 'Month subtotal';
-            } else if (level === 1) {
+            } else if (mode === 'team') {
                 label = 'Team subtotal';
-            } else if (level === 2) {
+            } else if (mode === 'family') {
                 label = 'Family subtotal';
+            } else if (mode === 'month_team') {
+                label = level === 0 ? 'Month subtotal' : 'Team subtotal';
+            } else if (mode === 'month_family') {
+                label = level === 0 ? 'Month subtotal' : 'Family subtotal';
             }
 
             return $('<tr/>')
@@ -289,7 +293,7 @@
                 return 0;
             }
 
-            const match = stripped.match(/[-]?\d+(?:[.,]\d+)?/);
+            const match = stripped.match(/-?(?:\d{1,3}(?:[.,]\d{3})+|\d+)(?:[.,]\d+)?/);
 
             if (!match) {
                 return 0;
@@ -302,22 +306,27 @@
 
             if (lastDot !== -1 && lastComma !== -1) {
                 if (lastComma > lastDot) {
-                    numStr = numStr.replace('.', '').replace(',', '.');
+                    numStr = numStr.replace(/\./g, '').replace(',', '.');
                 } else {
-                    numStr = numStr.replace(',', '');
+                    numStr = numStr.replace(/,/g, '');
                 }
             } else if (lastComma !== -1) {
                 const afterComma = numStr.substring(lastComma + 1);
                 if (afterComma.length <= 2) {
                     numStr = numStr.replace(',', '.');
                 } else {
-                    numStr = numStr.replace(',', '');
+                    numStr = numStr.replace(/,/g, '');
+                }
+            } else if (lastDot !== -1) {
+                const afterDot = numStr.substring(lastDot + 1);
+                if (afterDot.length > 2) {
+                    numStr = numStr.replace(/\./g, '');
                 }
             }
 
             const number = parseFloat(numStr);
             return isNaN(number) ? 0 : number;
-        },
+        }, 
 
         formatAmount: function (value) {
             return new Intl.NumberFormat('en-US', {

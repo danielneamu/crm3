@@ -214,6 +214,8 @@ $productRows = $productRows ?? [];
 
 <script>
     (function() {
+        let currentGroupingMode = 'month_team'; // Track active grouping mode
+
         function escapeHtml(text) {
             return jQuery('<div>').text(text == null ? '' : String(text)).html();
         }
@@ -230,7 +232,7 @@ $productRows = $productRows ?? [];
                 return 0;
             }
 
-            const match = stripped.match(/[-]?\d+(?:[.,]\d+)?/);
+            const match = stripped.match(/-?(?:\d{1,3}(?:[.,]\d{3})+|\d+)(?:[.,]\d+)?/);
 
             if (!match) {
                 return 0;
@@ -278,6 +280,67 @@ $productRows = $productRows ?? [];
             return total;
         }
 
+        function renderGroupStart(rows, group, level) {
+            const colspan = 24;
+
+            // Determine label based on CURRENT grouping mode, not level
+            let label = 'Group';
+
+            if (currentGroupingMode === 'none') {
+                return $('<tr/>');
+            }
+
+            if (currentGroupingMode === 'month') {
+                label = 'Month';
+            } else if (currentGroupingMode === 'team') {
+                label = 'Team';
+            } else if (currentGroupingMode === 'family') {
+                label = 'Family';
+            } else if (currentGroupingMode === 'month_team') {
+                // Multi-level: level 0 = Month, level 1 = Team
+                label = level === 0 ? 'Month' : 'Team';
+            } else if (currentGroupingMode === 'month_family') {
+                // Multi-level: level 0 = Month, level 1 = Family
+                label = level === 0 ? 'Month' : 'Family';
+            }
+
+            return $('<tr/>')
+                .addClass('dtrg-level-' + level)
+                .append(
+                    $('<td/>', {
+                        colspan: colspan,
+                        html: label + ': <strong>' + escapeHtml(group) + '</strong> ' +
+                            '<span class="text-muted">(' + rows.count() + ' rows)</span>'
+                    })
+                );
+        }
+
+        function renderGroupEnd(rows, group, level) {
+            const arrovTotal = sumColumnFromRows(rows, 14);
+            const aovMultiTotal = sumColumnFromRows(rows, 15);
+
+            let label = 'Subtotal';
+
+            if (currentGroupingMode === 'month') {
+                label = 'Month subtotal';
+            } else if (currentGroupingMode === 'team') {
+                label = 'Team subtotal';
+            } else if (currentGroupingMode === 'family') {
+                label = 'Family subtotal';
+            } else if (currentGroupingMode === 'month_team') {
+                label = level === 0 ? 'Month subtotal' : 'Team subtotal';
+            } else if (currentGroupingMode === 'month_family') {
+                label = level === 0 ? 'Month subtotal' : 'Family subtotal';
+            }
+
+            return $('<tr/>')
+                .addClass('dtrg-subtotal')
+                .append('<td colspan="14" class="text-end fw-semibold">' + label + '</td>')
+                .append('<td class="text-end fw-semibold">' + formatAmount(arrovTotal) + '</td>')
+                .append('<td class="text-end fw-semibold">' + formatAmount(aovMultiTotal) + '</td>')
+                .append('<td colspan="3"></td>');
+        }
+
         function initProductPipelineTable() {
             if (typeof window.jQuery === 'undefined' || typeof jQuery.fn.DataTable === 'undefined') {
                 return;
@@ -318,69 +381,16 @@ $productRows = $productRows ?? [];
                             targets: [20],
                             className: 'dt-description',
                             visible: false,
-
                         }
                     ],
                     rowGroup: {
                         dataSrc: [1, 2, 3],
                         enable: true,
                         startRender: function(rows, group, level) {
-                            const colspan = 24;
-
-                            if (level === 0) {
-                                return $('<tr/>')
-                                    .addClass('dtrg-level-0')
-                                    .append(
-                                        $('<td/>', {
-                                            colspan: colspan,
-                                            html: 'Month: <strong>' + escapeHtml(group) + '</strong> ' +
-                                                '<span class="text-muted">(' + rows.count() + ' rows)</span>'
-                                        })
-                                    );
-                            }
-
-                            if (level === 1) {
-                                return $('<tr/>')
-                                    .addClass('dtrg-level-1')
-                                    .append(
-                                        $('<td/>', {
-                                            colspan: colspan,
-                                            html: 'Team: <strong>' + escapeHtml(group) + '</strong> ' +
-                                                '<span class="text-muted">(' + rows.count() + ' rows)</span>'
-                                        })
-                                    );
-                            }
-
-                            return $('<tr/>')
-                                .addClass('dtrg-level-2')
-                                .append(
-                                    $('<td/>', {
-                                        colspan: colspan,
-                                        html: 'Family: <strong>' + escapeHtml(group) + '</strong> ' +
-                                            '<span class="text-muted">(' + rows.count() + ' rows)</span>'
-                                    })
-                                );
+                            return renderGroupStart(rows, group, level);
                         },
                         endRender: function(rows, group, level) {
-                            const arrovTotal = sumColumnFromRows(rows, 18);
-                            const aovMultiTotal = sumColumnFromRows(rows, 19);
-
-                            let label = 'Subtotal';
-
-                            if (level === 0) {
-                                label = 'Month subtotal';
-                            } else if (level === 1) {
-                                label = 'Team subtotal';
-                            } else if (level === 2) {
-                                label = 'Family subtotal';
-                            }
-
-                            return $('<tr/>')
-                                .addClass('dtrg-subtotal')
-                                .append('<td colspan="17" class="text-end fw-semibold">' + label + '</td>')
-                                .append('<td class="text-end fw-semibold">' + formatAmount(arrovTotal) + '</td>')
-                                .append('<td class="text-end fw-semibold">' + formatAmount(aovMultiTotal) + '</td>')
-                                .append('<td colspan="5"></td>');
+                            return renderGroupEnd(rows, group, level);
                         }
                     },
                     footerCallback: function(row, data, start, end, display) {
@@ -430,6 +440,8 @@ $productRows = $productRows ?? [];
                 });
 
                 function applyGrouping(mode) {
+                    currentGroupingMode = mode; // Update current mode
+
                     if (mode === 'none') {
                         dt.rowGroup().disable();
                         dt.order([
@@ -444,11 +456,11 @@ $productRows = $productRows ?? [];
                         dt.rowGroup().dataSrc(1);
                         dt.rowGroup().enable();
                         dt.order.fixed([
-                            [0, 'desc']
+                            [1, 'asc']
                         ]);
                         dt.order([
+                            [1, 'asc'],
                             [14, 'asc'],
-                            [0, 'desc'],
                             [5, 'desc']
                         ]).draw();
                         return;
@@ -461,8 +473,8 @@ $productRows = $productRows ?? [];
                             [2, 'asc']
                         ]);
                         dt.order([
-                            [14, 'asc'],
                             [2, 'asc'],
+                            [14, 'asc'],
                             [5, 'desc']
                         ]).draw();
                         return;
@@ -475,8 +487,8 @@ $productRows = $productRows ?? [];
                             [3, 'asc']
                         ]);
                         dt.order([
-                            [14, 'asc'],
                             [3, 'asc'],
+                            [14, 'asc'],
                             [5, 'desc']
                         ]).draw();
                         return;
@@ -486,13 +498,13 @@ $productRows = $productRows ?? [];
                         dt.rowGroup().dataSrc([1, 2]);
                         dt.rowGroup().enable();
                         dt.order.fixed([
-                            [0, 'desc'],
+                            [1, 'asc'],
                             [2, 'asc']
                         ]);
                         dt.order([
-                            [14, 'asc'],
-                            [0, 'desc'],
+                            [1, 'asc'],
                             [2, 'asc'],
+                            [14, 'asc'],
                             [5, 'desc']
                         ]).draw();
                         return;
@@ -502,13 +514,13 @@ $productRows = $productRows ?? [];
                         dt.rowGroup().dataSrc([1, 3]);
                         dt.rowGroup().enable();
                         dt.order.fixed([
-                            [0, 'desc'],
+                            [1, 'asc'],
                             [3, 'asc']
                         ]);
                         dt.order([
-                            [14, 'asc'],
-                            [0, 'desc'],
+                            [1, 'asc'],
                             [3, 'asc'],
+                            [14, 'asc'],
                             [5, 'desc']
                         ]).draw();
                         return;

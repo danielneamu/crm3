@@ -30,13 +30,15 @@ $selectedFilters = [
 $productRows = $productModel->getAll($selectedFilters);
 
 $filterConfig = [
-    'teams' => $baseModel->getTeams('main'),
-    'agents' => $baseModel->getAgents('main'),
+    'teams' => $productModel->getTeams(),
+    'agents' => $productModel->getAgents(),
     'fiscalPeriods' => $baseModel->getFiscalPeriods('main'),
     'productFamilies' => $productModel->getProductFamilies(),
+    'stages' => $productModel->getStages(),
     'showFiscalPeriod' => true,
     'showProductFamily' => true,
     'showStage' => true,
+    'showQuarter' => false,
     'showYear' => true,
     'selected' => $selectedFilters
 ];

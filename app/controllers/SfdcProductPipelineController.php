@@ -12,6 +12,25 @@ class SfdcProductPipelineController extends SfdcBaseController
     }
 
     /**
+     * Override parseFilters to include product_family and stage
+     * These are product-pipeline-specific filters not in base class
+     * 
+     * @param array $source Source array (defaults to $_GET)
+     * @return array Parsed filters including product_family and stage
+     */
+    protected function parseFilters(array $source = null)
+    {
+        $filters = parent::parseFilters($source);
+        $input = $source ?? $_GET;
+
+        // Add product pipeline specific filters
+        $filters['product_family'] = isset($input['product_family']) ? trim($input['product_family']) : '';
+        $filters['stage'] = isset($input['stage']) ? trim($input['stage']) : '';
+
+        return $filters;
+    }
+
+    /**
      * Get all product pipeline rows (with filters)
      * 
      * GET /api/sfdc_product_pipeline.php?action=get_products&team=...&stage=...
@@ -70,6 +89,23 @@ class SfdcProductPipelineController extends SfdcBaseController
             $this->jsonSuccess($families);
         } catch (Exception $e) {
             $this->jsonError('Failed to load product families: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Get unique stages (for filter dropdown)
+     * 
+     * GET /api/sfdc_product_pipeline.php?action=get_stages
+     */
+    public function getStages()
+    {
+        $this->requireMethod('GET');
+
+        try {
+            $stages = $this->model->getStages();
+            $this->jsonSuccess($stages);
+        } catch (Exception $e) {
+            $this->jsonError('Failed to load stages: ' . $e->getMessage(), 500);
         }
     }
 

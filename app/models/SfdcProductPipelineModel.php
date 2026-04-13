@@ -7,6 +7,82 @@ class SfdcProductPipelineModel extends SfdcBaseModel
     protected $table = 'sfdc_product_pipeline';
 
     /**
+     * Override parseFilters to include product_family and stage
+     * These are product-pipeline-specific filters
+     */
+    protected function parseFilters(array $filters = [])
+    {
+        // Get base filters from parent
+        $baseFilters = parent::parseFilters($filters);
+
+        // Add product pipeline specific filters
+        $baseFilters['product_family'] = isset($filters['product_family']) ? trim($filters['product_family']) : '';
+        $baseFilters['stage'] = isset($filters['stage']) ? trim($filters['stage']) : '';
+
+        return $baseFilters;
+    }
+
+    /**
+     * Get unique teams from product pipeline (overrides parent)
+     * Queries sfdc_product_pipeline directly to show all teams with data
+     * 
+     * @return array List of Owner_Role values
+     */
+    public function getTeams($source = 'main')
+    {
+        $sql = "
+            SELECT DISTINCT Owner_Role
+            FROM {$this->table}
+            WHERE Owner_Role IS NOT NULL
+              AND TRIM(Owner_Role) <> ''
+            ORDER BY Owner_Role ASC
+        ";
+
+        $stmt = $this->conn->query($sql);
+        return $stmt->fetchAll(PDO::FETCH_COLUMN);
+    }
+
+    /**
+     * Get unique agents from product pipeline (overrides parent)
+     * Queries sfdc_product_pipeline directly to show all agents with data
+     * 
+     * @return array List of Opportunity_Owner values
+     */
+    public function getAgents($source = 'main')
+    {
+        $sql = "
+            SELECT DISTINCT Opportunity_Owner
+            FROM {$this->table}
+            WHERE Opportunity_Owner IS NOT NULL
+              AND TRIM(Opportunity_Owner) <> ''
+            ORDER BY Opportunity_Owner ASC
+        ";
+
+        $stmt = $this->conn->query($sql);
+        return $stmt->fetchAll(PDO::FETCH_COLUMN);
+    }
+
+    /**
+     * Get unique stages from product pipeline
+     * Returns all distinct Stage values for dropdown filter
+     * 
+     * @return array List of Stage values
+     */
+    public function getStages()
+    {
+        $sql = "
+            SELECT DISTINCT Stage
+            FROM {$this->table}
+            WHERE Stage IS NOT NULL
+              AND TRIM(Stage) <> ''
+            ORDER BY Stage ASC
+        ";
+
+        $stmt = $this->conn->query($sql);
+        return $stmt->fetchAll(PDO::FETCH_COLUMN);
+    }
+
+    /**
      * Get all product pipeline rows with filters applied
      * 
      * @param array $filters Team, Agent, Stage, Month, Year, etc.
@@ -379,7 +455,7 @@ class SfdcProductPipelineModel extends SfdcBaseModel
             $params[':product_family'] = $filters['product_family'];
         }
 
-        // Add stage filter
+        // Add stage filter - now properly handles empty/null values
         if (isset($filters['stage']) && $filters['stage'] !== '') {
             $conditions[] = 'Stage = :stage';
             $params[':stage'] = $filters['stage'];

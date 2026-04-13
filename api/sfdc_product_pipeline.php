@@ -73,6 +73,10 @@ try {
             $controller->getProductFamilies();
             break;
 
+        case 'get_stages':
+            $controller->getStages();
+            break;
+
         case 'get_dashboard_data':
             $controller->getDashboardData();
             break;
