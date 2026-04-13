@@ -463,4 +463,677 @@ class SfdcProductPipelineModel extends SfdcBaseModel
 
         return $conditions ? ' WHERE ' . implode(' AND ', $conditions) : '';
     }
+
+
+
+   /****************************************************************************************************************************************************************
+     *  PRODUCT PIPELINE DASHBOAR METHODS AND CHARTS
+     ***************************************************************************************************************************************************************/
+
+
+
+    /****************************************************************************************************************************************************************
+     * Load dashboard filter options for the selected fiscal year.
+     * Returns:
+     * - product_families: all families in FY
+     * - all_product_names: all names in FY
+     * - names_by_family: names grouped by family
+     ***************************************************************************************************************************************************************/
+    public function loadFilterOptions($fiscalYear)
+    {
+        $range = $this->getFiscalYearRange($fiscalYear);
+
+        $sql = "
+            SELECT DISTINCT
+                Product_Family,
+                Product_Name
+            FROM {$this->table}
+            WHERE Close_Date >= :start_date
+              AND Close_Date <= :end_date
+              AND Product_Name IS NOT NULL
+              AND TRIM(Product_Name) <> ''
+            ORDER BY Product_Family ASC, Product_Name ASC
+        ";
+
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(':start_date', $range['start'], PDO::PARAM_STR);
+        $stmt->bindValue(':end_date', $range['end'], PDO::PARAM_STR);
+        $stmt->execute();
+
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $families = [];
+        $allNames = [];
+        $namesByFamily = [];
+
+        foreach ($rows as $row) {
+            $family = trim((string)($row['Product_Family'] ?? ''));
+            $name = trim((string)($row['Product_Name'] ?? ''));
+
+            if ($family !== '' && !in_array($family, $families, true)) {
+                $families[] = $family;
+            }
+
+            if ($name !== '' && !in_array($name, $allNames, true)) {
+                $allNames[] = $name;
+            }
+
+            if ($family !== '' && $name !== '') {
+                if (!isset($namesByFamily[$family])) {
+                    $namesByFamily[$family] = [];
+                }
+
+                if (!in_array($name, $namesByFamily[$family], true)) {
+                    $namesByFamily[$family][] = $name;
+                }
+            }
+        }
+
+        sort($families);
+        sort($allNames);
+
+        foreach ($namesByFamily as $family => $names) {
+            sort($names);
+            $namesByFamily[$family] = array_values($names);
+        }
+
+        return [
+            'fiscalYear' => (int)$fiscalYear,
+            'productFamilies' => array_values($families),
+            'allProductNames' => array_values($allNames),
+            'productNamesByFamily' => $namesByFamily
+        ];
+    }
+
+    /**
+     * DATASET 1:
+     * Get filtered raw rows after Fiscal Year / Product Family / Product Name filters.
+     * This remains row-level product data.
+     */
+    public function getFilteredRawRows(array $filters)
+    {
+        $fiscalYear = isset($filters['fiscal_year']) ? (int)$filters['fiscal_year'] : self::getCurrentFiscalYear();
+        $range = $this->getFiscalYearRange($fiscalYear);
+
+        $params = [
+            ':start_date' => $range['start'],
+            ':end_date' => $range['end']
+        ];
+
+        $conditions = [
+            'Close_Date >= :start_date',
+            'Close_Date <= :end_date'
+        ];
+
+        $productFamilies = isset($filters['product_families']) && is_array($filters['product_families'])
+            ? array_values(array_filter(array_map('trim', $filters['product_families']), function ($v) {
+                return $v !== '';
+            }))
+            : [];
+
+        $productNames = isset($filters['product_names']) && is_array($filters['product_names'])
+            ? array_values(array_filter(array_map('trim', $filters['product_names']), function ($v) {
+                return $v !== '';
+            }))
+            : [];
+
+        if (!empty($productFamilies)) {
+            $familyPlaceholders = [];
+            foreach ($productFamilies as $index => $family) {
+                $key = ':product_family_' . $index;
+                $familyPlaceholders[] = $key;
+                $params[$key] = $family;
+            }
+            $conditions[] = 'Product_Family IN (' . implode(', ', $familyPlaceholders) . ')';
+        }
+
+        if (!empty($productNames)) {
+            $namePlaceholders = [];
+            foreach ($productNames as $index => $name) {
+                $key = ':product_name_' . $index;
+                $namePlaceholders[] = $key;
+                $params[$key] = $name;
+            }
+            $conditions[] = 'Product_Name IN (' . implode(', ', $namePlaceholders) . ')';
+        }
+
+        $sql = "
+            SELECT
+                Product_Pipeline_ID,
+                Opportunity_Reference_ID,
+                Opportunity_Owner,
+                Owner_Role,
+                Account_Name,
+                Opportunity_Name,
+                Fiscal_Period,
+                Stage,
+                Probability_Percent,
+                Age,
+                Close_Date,
+                Contract_Term_Months,
+                Annual_Order_Value_Multi,
+                Product_Family,
+                Product_Name,
+                Product_Code,
+                Product_Annual_Recurring_Order_Value
+            FROM {$this->table}
+            WHERE " . implode(' AND ', $conditions) . "
+            ORDER BY Opportunity_Reference_ID ASC, Product_Pipeline_ID ASC
+        ";
+
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute($params);
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Convert raw DB row to normalized numeric/string fields for dashboard logic.
+     */
+    protected function normalizeDashboardRow(array $row)
+    {
+        $contractTerm = isset($row['Contract_Term_Months']) ? (float)$row['Contract_Term_Months'] : 0;
+        $aovMulti = isset($row['Annual_Order_Value_Multi']) ? (float)$row['Annual_Order_Value_Multi'] : 0;
+        $arrov = isset($row['Product_Annual_Recurring_Order_Value']) ? (float)$row['Product_Annual_Recurring_Order_Value'] : 0;
+
+        return [
+            'product_pipeline_id' => isset($row['Product_Pipeline_ID']) ? (int)$row['Product_Pipeline_ID'] : null,
+            'opp_ref' => trim((string)($row['Opportunity_Reference_ID'] ?? '')),
+            'agent' => trim((string)($row['Opportunity_Owner'] ?? '')),
+            'team' => trim((string)($row['Owner_Role'] ?? '')),
+            'account_name' => trim((string)($row['Account_Name'] ?? '')),
+            'opportunity_name' => trim((string)($row['Opportunity_Name'] ?? '')),
+            'fiscal_period' => trim((string)($row['Fiscal_Period'] ?? '')),
+            'stage' => trim((string)($row['Stage'] ?? '')),
+            'probability' => isset($row['Probability_Percent']) ? (float)$row['Probability_Percent'] : 0,
+            'age' => isset($row['Age']) ? (float)$row['Age'] : 0,
+            'close_date' => $row['Close_Date'] ?? null,
+            'contract_term_months' => $contractTerm,
+            'aov_multi' => $aovMulti,
+            'product_family' => trim((string)($row['Product_Family'] ?? '')),
+            'product_name' => trim((string)($row['Product_Name'] ?? '')),
+            'product_code' => trim((string)($row['Product_Code'] ?? '')),
+            'arrov' => $arrov
+        ];
+    }
+
+    /**
+     * DATASET 2:
+     * Centralized ARROV cleaning layer.
+     *
+     * Mandatory rule:
+     * for every Opp Ref, SUM(cleaned_ARROV) must equal AOV Multi.
+     */
+    public function cleanRowArrovValues(array $rows)
+    {
+        $grouped = [];
+
+        foreach ($rows as $row) {
+            $normalized = $this->normalizeDashboardRow($row);
+            $oppRef = $normalized['opp_ref'];
+
+            if ($oppRef === '') {
+                continue;
+            }
+
+            if (!isset($grouped[$oppRef])) {
+                $grouped[$oppRef] = [];
+            }
+
+            $grouped[$oppRef][] = $normalized;
+        }
+
+        $cleanedRows = [];
+
+        foreach ($grouped as $oppRef => $oppRows) {
+            $rowCount = count($oppRows);
+            $aovMulti = (float)$oppRows[0]['aov_multi'];
+
+            // Single-row opportunity
+            if ($rowCount === 1) {
+                $row = $oppRows[0];
+                $row['cleaned_arrov'] = $aovMulti;
+                $row['cleaning_method'] = 'single_row_use_aov_multi';
+                $row['cleaning_sum_after'] = $aovMulti;
+                $cleanedRows[] = $row;
+                continue;
+            }
+
+            // Multi-row opportunity: first compare raw ARROV sum vs AOV Multi
+            $sumArrov = 0.0;
+            foreach ($oppRows as $row) {
+                $sumArrov += (float)$row['arrov'];
+            }
+
+            // Rule 1: if sum(ARROV) == AOV Multi, keep ARROV row values as-is
+            if (abs($sumArrov - $aovMulti) < 0.01) {
+                foreach ($oppRows as $row) {
+                    $row['cleaned_arrov'] = (float)$row['arrov'];
+                    $row['cleaning_method'] = 'multi_row_raw_arrov_matches_aov';
+                    $row['cleaning_sum_after'] = $sumArrov;
+                    $cleanedRows[] = $row;
+                }
+                continue;
+            }
+
+            // Rule 2: if mismatch, normalize only rows where ARROV > AOV Multi by /12
+            $adjustedRows = [];
+            $adjustedSum = 0.0;
+
+            foreach ($oppRows as $row) {
+                $rawArrov = (float)$row['arrov'];
+                $cleanedArrov = $rawArrov;
+
+                if ($rawArrov > $aovMulti) {
+                    $cleanedArrov = round($rawArrov / 12, 2);
+                    $row['cleaning_method'] = 'multi_row_row_gt_aov_div_12';
+                } else {
+                    $row['cleaning_method'] = 'multi_row_row_kept_raw';
+                }
+
+                $row['cleaned_arrov'] = $cleanedArrov;
+                $adjustedRows[] = $row;
+                $adjustedSum += $cleanedArrov;
+            }
+
+            // Store final opportunity-level validation result on each row
+            $finalMethod = abs($adjustedSum - $aovMulti) < 0.01
+                ? 'multi_row_normalized_sum_matches_aov'
+                : 'multi_row_normalized_sum_still_mismatch';
+
+            foreach ($adjustedRows as $row) {
+                $row['cleaning_validation'] = $finalMethod;
+                $row['cleaning_sum_after'] = round($adjustedSum, 2);
+                $row['cleaning_target_aov'] = round($aovMulti, 2);
+                $cleanedRows[] = $row;
+            }
+        }
+
+        return $cleanedRows;
+    }
+
+    /**
+     * DATASET 3:
+     * Build deduplicated opportunity rows after filters are applied.
+     * One row per Opp Ref.
+     *
+     * Canonical business rule for opportunity-level reporting:
+     * - use deduplicated AOV Multi once per opportunity
+     * - use opportunity-level fields from one stable representative row
+     */
+    public function buildUniqueOpportunityRows(array $rows)
+    {
+        $unique = [];
+
+        foreach ($rows as $row) {
+            $oppRef = trim((string)($row['opp_ref'] ?? ''));
+
+            if ($oppRef === '') {
+                continue;
+            }
+
+            if (!isset($unique[$oppRef])) {
+                $unique[$oppRef] = [
+                    'opp_ref' => $oppRef,
+                    'agent' => $row['agent'] ?? '',
+                    'team' => $row['team'] ?? '',
+                    'account_name' => $row['account_name'] ?? '',
+                    'opportunity_name' => $row['opportunity_name'] ?? '',
+                    'stage' => $row['stage'] ?? '',
+                    'probability' => isset($row['probability']) ? (float)$row['probability'] : 0,
+                    'age' => isset($row['age']) ? (float)$row['age'] : 0,
+                    'close_date' => $row['close_date'] ?? null,
+                    'aov_multi' => isset($row['aov_multi']) ? (float)$row['aov_multi'] : 0
+                ];
+            }
+        }
+
+        return array_values($unique);
+    }
+
+    /**
+     * KPI cards from deduplicated opportunity dataset.
+     */
+    public function getKpiCards(array $uniqueOppRows)
+    {
+        $totalPipeline = 0.0;
+        $weightedPipeline = 0.0;
+        $totalAge = 0.0;
+        $oppCount = count($uniqueOppRows);
+
+        foreach ($uniqueOppRows as $row) {
+            $aov = isset($row['aov_multi']) ? (float)$row['aov_multi'] : 0;
+            $probability = isset($row['probability']) ? (float)$row['probability'] : 0;
+            $age = isset($row['age']) ? (float)$row['age'] : 0;
+
+            $totalPipeline += $aov;
+            $weightedPipeline += $aov * ($probability / 100);
+            $totalAge += $age;
+        }
+
+        return [
+            'totalPipelineAov' => round($totalPipeline, 2),
+            'weightedPipeline' => round($weightedPipeline, 2),
+            'avgAge' => $oppCount > 0 ? round($totalAge / $oppCount, 2) : 0,
+            'oppCount' => $oppCount
+        ];
+    }
+
+    /**
+     * Chart: Pipeline by Stage
+     * Opportunity-level, deduplicated AOV Multi.
+     */
+    public function getStageChart(array $uniqueOppRows)
+    {
+        $totals = [];
+
+        foreach ($uniqueOppRows as $row) {
+            $stage = trim((string)($row['stage'] ?? ''));
+            if ($stage === '') {
+                $stage = 'Unknown';
+            }
+
+            if (!isset($totals[$stage])) {
+                $totals[$stage] = 0.0;
+            }
+
+            $totals[$stage] += (float)$row['aov_multi'];
+        }
+
+        arsort($totals);
+
+        return [
+            'labels' => array_keys($totals),
+            'values' => array_values($totals)
+        ];
+    }
+
+    /**
+     * Chart: Pipeline by Team
+     * Opportunity-level, deduplicated AOV Multi, stage split.
+     */
+    public function getTeamChart(array $uniqueOppRows)
+    {
+        $teams = [];
+        $stages = [];
+        $matrix = [];
+
+        foreach ($uniqueOppRows as $row) {
+            $team = trim((string)($row['team'] ?? ''));
+            $stage = trim((string)($row['stage'] ?? ''));
+
+            if ($team === '') {
+                $team = 'No Team';
+            }
+
+            if ($stage === '') {
+                $stage = 'Unknown';
+            }
+
+            if (!in_array($team, $teams, true)) {
+                $teams[] = $team;
+            }
+
+            if (!in_array($stage, $stages, true)) {
+                $stages[] = $stage;
+            }
+
+            if (!isset($matrix[$stage])) {
+                $matrix[$stage] = [];
+            }
+
+            if (!isset($matrix[$stage][$team])) {
+                $matrix[$stage][$team] = 0.0;
+            }
+
+            $matrix[$stage][$team] += (float)$row['aov_multi'];
+        }
+
+        sort($teams);
+        sort($stages);
+
+        $datasets = [];
+        foreach ($stages as $stage) {
+            $data = [];
+            foreach ($teams as $team) {
+                $data[] = isset($matrix[$stage][$team]) ? round($matrix[$stage][$team], 2) : 0;
+            }
+
+            $datasets[] = [
+                'label' => $stage,
+                'data' => $data
+            ];
+        }
+
+        return [
+            'labels' => $teams,
+            'datasets' => $datasets
+        ];
+    }
+
+    /**
+     * Chart: Age vs AOV
+     * Opportunity-level scatter.
+     */
+    public function getAgeScatter(array $uniqueOppRows)
+    {
+        $datasetsByStage = [];
+
+        foreach ($uniqueOppRows as $row) {
+            $stage = trim((string)($row['stage'] ?? ''));
+            if ($stage === '') {
+                $stage = 'Unknown';
+            }
+
+            if (!isset($datasetsByStage[$stage])) {
+                $datasetsByStage[$stage] = [];
+            }
+
+            $datasetsByStage[$stage][] = [
+                'x' => (float)($row['age'] ?? 0),
+                'y' => (float)($row['aov_multi'] ?? 0),
+                'oppRef' => $row['opp_ref'] ?? '',
+                'opportunityName' => $row['opportunity_name'] ?? ''
+            ];
+        }
+
+        $datasets = [];
+        foreach ($datasetsByStage as $stage => $points) {
+            $datasets[] = [
+                'label' => $stage,
+                'data' => $points
+            ];
+        }
+
+        return [
+            'datasets' => $datasets
+        ];
+    }
+
+    /**
+     * Chart: Probability Distribution
+     * Opportunity-level attributes from deduplicated dataset.
+     */
+    public function getProbabilityChart(array $uniqueOppRows)
+    {
+        $buckets = [
+            '0-10' => ['count' => 0, 'aov' => 0.0],
+            '11-25' => ['count' => 0, 'aov' => 0.0],
+            '26-50' => ['count' => 0, 'aov' => 0.0],
+            '51-75' => ['count' => 0, 'aov' => 0.0],
+            '76-100' => ['count' => 0, 'aov' => 0.0],
+        ];
+
+        foreach ($uniqueOppRows as $row) {
+            $prob = (float)($row['probability'] ?? 0);
+            $aov = (float)($row['aov_multi'] ?? 0);
+
+            if ($prob <= 10) {
+                $bucket = '0-10';
+            } elseif ($prob <= 25) {
+                $bucket = '11-25';
+            } elseif ($prob <= 50) {
+                $bucket = '26-50';
+            } elseif ($prob <= 75) {
+                $bucket = '51-75';
+            } else {
+                $bucket = '76-100';
+            }
+
+            $buckets[$bucket]['count']++;
+            $buckets[$bucket]['aov'] += $aov;
+        }
+
+        $countValues = [];
+        $aovValues = [];
+
+        foreach ($buckets as $bucket) {
+            $countValues[] = (int)$bucket['count'];
+            $aovValues[] = round((float)$bucket['aov'], 2);
+        }
+
+        return [
+            'labels' => array_values(array_keys($buckets)),
+            'countValues' => array_values($countValues),
+            'aovValues' => array_values($aovValues)
+        ];
+    }
+
+    /**
+     * Chart: Product Family Mix
+     * Product-level composition view using cleaned_ARROV.
+     */
+    public function getProductFamilyMixChart(array $cleanedRows)
+    {
+        $totals = [];
+
+        foreach ($cleanedRows as $row) {
+            $family = trim((string)($row['product_family'] ?? ''));
+            if ($family === '') {
+                $family = 'Uncategorized';
+            }
+
+            if (!isset($totals[$family])) {
+                $totals[$family] = 0.0;
+            }
+
+            $totals[$family] += (float)($row['cleaned_arrov'] ?? 0);
+        }
+
+        arsort($totals);
+
+        return [
+            'labels' => array_keys($totals),
+            'values' => array_values($totals)
+        ];
+    }
+
+    /**
+     * Chart: Close Date Timeline
+     * Opportunity-level, deduplicated AOV Multi.
+     */
+    public function getCloseTimeline(array $uniqueOppRows)
+    {
+        $points = [];
+
+        foreach ($uniqueOppRows as $row) {
+            $closeDate = $row['close_date'] ?? null;
+            if (empty($closeDate) || $closeDate === '0000-00-00') {
+                continue;
+            }
+
+            $points[] = [
+                'x' => $closeDate,
+                'y' => (float)($row['aov_multi'] ?? 0),
+                'r' => 6,
+                'stage' => $row['stage'] ?? '',
+                'oppRef' => $row['opp_ref'] ?? '',
+                'opportunityName' => $row['opportunity_name'] ?? ''
+            ];
+        }
+
+        return [
+            'points' => $points
+        ];
+    }
+
+    /**
+     * Chart: Monthly Team AOV
+     * Opportunity-level, deduplicated AOV Multi, fiscal order April -> March.
+     */
+    public function getMonthlyTeamFiscalChart(array $uniqueOppRows)
+    {
+        $fiscalMonthMap = [
+            4 => 'Apr',
+            5 => 'May',
+            6 => 'Jun',
+            7 => 'Jul',
+            8 => 'Aug',
+            9 => 'Sep',
+            10 => 'Oct',
+            11 => 'Nov',
+            12 => 'Dec',
+            1 => 'Jan',
+            2 => 'Feb',
+            3 => 'Mar'
+        ];
+
+        $labels = array_values($fiscalMonthMap);
+        $teams = [];
+        $matrix = [];
+
+        foreach ($uniqueOppRows as $row) {
+            $team = trim((string)($row['team'] ?? ''));
+            $closeDate = $row['close_date'] ?? null;
+
+            if ($team === '') {
+                $team = 'No Team';
+            }
+
+            if (empty($closeDate) || $closeDate === '0000-00-00') {
+                continue;
+            }
+
+            $month = (int)date('n', strtotime($closeDate));
+            if (!isset($fiscalMonthMap[$month])) {
+                continue;
+            }
+
+            $monthLabel = $fiscalMonthMap[$month];
+
+            if (!in_array($team, $teams, true)) {
+                $teams[] = $team;
+            }
+
+            if (!isset($matrix[$team])) {
+                $matrix[$team] = [];
+            }
+
+            if (!isset($matrix[$team][$monthLabel])) {
+                $matrix[$team][$monthLabel] = 0.0;
+            }
+
+            $matrix[$team][$monthLabel] += (float)($row['aov_multi'] ?? 0);
+        }
+
+        sort($teams);
+
+        $datasets = [];
+        foreach ($teams as $team) {
+            $data = [];
+            foreach ($labels as $label) {
+                $data[] = isset($matrix[$team][$label]) ? round($matrix[$team][$label], 2) : 0;
+            }
+
+            $datasets[] = [
+                'label' => $team,
+                'data' => $data
+            ];
+        }
+
+        return [
+            'labels' => $labels,
+            'datasets' => $datasets
+        ];
+    }
 }

@@ -114,6 +114,12 @@ class SfdcProductPipelineController extends SfdcBaseController
      * 
      * GET /api/sfdc_product_pipeline.php?action=get_dashboard_data&fiscal_year=2026
      */
+    /**
+     * Get dashboard data for a fiscal year
+     *
+     * GET /api/sfdc_product_pipeline.php?action=get_dashboard_data&fiscal_year=2026
+     * GET /api/sfdc_product_pipeline.php?action=get_dashboard_data&fiscal_year=2026&product_families=A,B&product_names=X,Y
+     */
     public function getDashboardData()
     {
         $this->requireMethod('GET');
@@ -123,9 +129,50 @@ class SfdcProductPipelineController extends SfdcBaseController
                 ? (int)$_GET['fiscal_year']
                 : SfdcProductPipelineModel::getCurrentFiscalYear();
 
-            $data = $this->model->getDashboardData($fiscalYear);
+            $productFamilies = [];
+            if (isset($_GET['product_families']) && trim((string)$_GET['product_families']) !== '') {
+                $productFamilies = array_values(array_filter(array_map('trim', explode(',', (string)$_GET['product_families']))));
+            }
 
-            $this->jsonSuccess($data);
+            $productNames = [];
+            if (isset($_GET['product_names']) && trim((string)$_GET['product_names']) !== '') {
+                $productNames = array_values(array_filter(array_map('trim', explode(',', (string)$_GET['product_names']))));
+            }
+
+            $filters = [
+                'fiscal_year' => $fiscalYear,
+                'product_families' => $productFamilies,
+                'product_names' => $productNames,
+            ];
+
+            // 1) Filter options for current fiscal year
+            $filterOptions = $this->model->loadFilterOptions($fiscalYear);
+
+            // 2) Raw filtered rows
+            $rawRows = $this->model->getFilteredRawRows($filters);
+
+            // 3) Centralized cleaning layer
+            $cleanedRows = $this->model->cleanRowArrovValues($rawRows);
+
+            // 4) Deduplicated opportunity dataset
+            $uniqueOppRows = $this->model->buildUniqueOpportunityRows($cleanedRows);
+
+            // 5) Dashboard payload
+            $payload = [
+                'filters' => $filterOptions,
+                'cards' => $this->model->getKpiCards($uniqueOppRows),
+                'charts' => [
+                    'stage' => $this->model->getStageChart($uniqueOppRows),
+                    'team' => $this->model->getTeamChart($uniqueOppRows),
+                    'ageAov' => $this->model->getAgeScatter($uniqueOppRows),
+                    'probability' => $this->model->getProbabilityChart($uniqueOppRows),
+                    'productFamilyMix' => $this->model->getProductFamilyMixChart($cleanedRows),
+                    'closeTimeline' => $this->model->getCloseTimeline($uniqueOppRows),
+                    'monthlyTeamFiscal' => $this->model->getMonthlyTeamFiscalChart($uniqueOppRows),
+                ],
+            ];
+
+            $this->jsonSuccess($payload);
         } catch (Exception $e) {
             $this->jsonError('Failed to load dashboard data: ' . $e->getMessage(), 500);
         }

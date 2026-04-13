@@ -1,311 +1,314 @@
 <?php
 
-/** Dashboard View for Product Pipeline - wireframe with containers
- *  Future: Will be populated with Chart.js stacked bar charts
+/**
+ * Product Pipeline Dashboard View
+ * Page-scoped dashboard only. Does not affect table flow.
  */
 ?>
 
 <style>
-    .sfdc-dashboard-grid {
+    .sfdc-product-dashboard {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .sfdc-product-dashboard .dashboard-toolbar {
+        border: 1px solid #dee2e6;
+        border-radius: 0.5rem;
+        background: #fff;
+        padding: 1rem;
+    }
+
+    .sfdc-product-dashboard .dashboard-toolbar .toolbar-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 1rem;
+        align-items: end;
+    }
+
+    .sfdc-product-dashboard .dashboard-toolbar .toolbar-actions {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: flex-start;
+        align-items: end;
+        flex-wrap: wrap;
+    }
+
+    .sfdc-product-dashboard .dashboard-kpis {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 1rem;
+    }
+
+    .sfdc-product-dashboard .dashboard-kpi-card,
+    .sfdc-product-dashboard .dashboard-panel {
+        border: 1px solid #dee2e6;
+        border-radius: 0.5rem;
+        background: #fff;
+        min-width: 0;
+    }
+
+    .sfdc-product-dashboard .dashboard-kpi-card {
+        padding: 1rem;
+    }
+
+    .sfdc-product-dashboard .dashboard-kpi-label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: #6c757d;
+        margin-bottom: 0.35rem;
+        font-weight: 600;
+    }
+
+    .sfdc-product-dashboard .dashboard-kpi-value {
+        font-size: 1.5rem;
+        line-height: 1.1;
+        font-weight: 700;
+        color: #212529;
+    }
+
+    .sfdc-product-dashboard .dashboard-panels {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 1rem;
     }
 
-    .sfdc-dashboard-panel {
-        border: 1px solid #dee2e6;
-        border-radius: 0.5rem;
-        padding: 1rem;
-        background: #fff;
-        min-width: 0;
+    .sfdc-product-dashboard .dashboard-panel.panel-full {
+        grid-column: 1 / -1;
     }
 
-    .sfdc-dashboard-chart-wrap {
+    .sfdc-product-dashboard .dashboard-panel-header {
+        padding: 0.9rem 1rem 0;
+    }
+
+    .sfdc-product-dashboard .dashboard-panel-title {
+        margin: 0;
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: #212529;
+    }
+
+    .sfdc-product-dashboard .dashboard-panel-subtitle {
+        margin: 0.2rem 0 0;
+        font-size: 0.75rem;
+        color: #6c757d;
+    }
+
+    .sfdc-product-dashboard .dashboard-chart-wrap {
         position: relative;
         width: 100%;
-        height: 300px;
-        min-width: 0;
+        height: 320px;
+        padding: 0.75rem 1rem 1rem;
     }
 
-    .sfdc-dashboard-chart-wrap canvas {
+    .sfdc-product-dashboard .dashboard-chart-wrap.chart-tall {
+        height: 380px;
+    }
+
+    .sfdc-product-dashboard .dashboard-chart-wrap canvas {
         display: block;
         width: 100% !important;
         height: 100% !important;
     }
 
-    .sfdc-dashboard-kpis {
-        font-size: 12px;
-        background: #f8f9fa;
-        padding: 10px;
-        margin: 0 0 15px 0;
-        border-radius: 0.375rem;
+    .sfdc-product-dashboard .dashboard-loading,
+    .sfdc-product-dashboard .dashboard-error,
+    .sfdc-product-dashboard .dashboard-empty {
+        display: none;
+        border: 1px solid #dee2e6;
+        border-radius: 0.5rem;
+        background: #fff;
+        padding: 2rem;
+        text-align: center;
     }
 
-    .sfdc-dashboard-placeholder {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        height: 300px;
-        background: #f8f9fa;
-        border: 2px dashed #dee2e6;
-        border-radius: 0.375rem;
-        color: #999;
-        font-style: italic;
-        font-size: 14px;
+    .sfdc-product-dashboard .dashboard-footnote {
+        font-size: 0.8rem;
+        color: #6c757d;
+        margin: 0;
     }
 
-    @media (max-width: 991.98px) {
-        .sfdc-dashboard-grid {
+    .sfdc-product-dashboard .dashboard-footnote strong {
+        color: #495057;
+    }
+
+    @media (max-width: 1199.98px) {
+
+        .sfdc-product-dashboard .dashboard-toolbar .toolbar-grid,
+        .sfdc-product-dashboard .dashboard-kpis,
+        .sfdc-product-dashboard .dashboard-panels {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .sfdc-product-dashboard .dashboard-panel.panel-full {
+            grid-column: auto;
+        }
+    }
+
+    @media (max-width: 767.98px) {
+
+        .sfdc-product-dashboard .dashboard-toolbar .toolbar-grid,
+        .sfdc-product-dashboard .dashboard-kpis,
+        .sfdc-product-dashboard .dashboard-panels {
             grid-template-columns: 1fr;
         }
     }
 </style>
 
-<div class="card shadow-sm border-0 mb-4">
-    <div class="card-body">
-        <div style="margin-bottom: 20px;">
-            <label for="dashboardFiscalYearProduct" class="form-label fw-semibold">Fiscal Year</label>
-            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                <select id="dashboardFiscalYearProduct" class="form-select" style="max-width: 300px;">
-                    <option value="2026">FY2026 (Apr 2025 – Mar 2026)</option>
+<div id="sfdcProductDashboardRoot" class="sfdc-product-dashboard">
+
+    <div class="dashboard-toolbar">
+        <div class="toolbar-grid">
+            <div>
+                <label for="dashboardFiscalYearProduct" class="form-label fw-semibold">Fiscal Year</label>
+                <select id="dashboardFiscalYearProduct" class="form-select">
+                    <option value="2027">FY2027 (Apr 2026 – Mar 2027)</option>
+                    <option value="2026" selected>FY2026 (Apr 2025 – Mar 2026)</option>
                     <option value="2025">FY2025 (Apr 2024 – Mar 2025)</option>
                     <option value="2024">FY2024 (Apr 2023 – Mar 2024)</option>
                 </select>
-                <button id="dashboardRefreshProduct" class="btn btn-primary btn-sm">
+            </div>
+
+            <div>
+                <label for="dashboardProductFamilyProduct" class="form-label fw-semibold">Product Family</label>
+                <select id="dashboardProductFamilyProduct" class="form-select" multiple></select>
+            </div>
+
+            <div>
+                <label for="dashboardProductNameProduct" class="form-label fw-semibold">Product Name</label>
+                <select id="dashboardProductNameProduct" class="form-select" multiple></select>
+            </div>
+
+            <div class="toolbar-actions">
+                <button id="dashboardRefreshProduct" class="btn btn-primary">
                     <i class="bi bi-arrow-clockwise me-2"></i>Refresh
+                </button>
+                <button id="dashboardResetProduct" class="btn btn-outline-secondary">
+                    Reset
                 </button>
             </div>
         </div>
+    </div>
 
-        <div id="dashboardLoadingProduct" style="display: none; text-align: center; padding: 40px;">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
-            </div>
-            <p class="text-muted mt-2">Loading dashboard data...</p>
+    <div id="dashboardLoadingProduct" class="dashboard-loading">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
         </div>
+        <p class="text-muted mt-2 mb-0">Loading dashboard data...</p>
+    </div>
 
-        <div id="dashboardContentProduct" style="display: none; width: 100%;">
-            <div class="sfdc-dashboard-grid">
+    <div id="dashboardErrorProduct" class="dashboard-error">
+        <strong class="text-danger d-block mb-2">Error</strong>
+        <span id="dashboardErrorMessageProduct">Failed to load dashboard data.</span>
+    </div>
 
-                <div class="sfdc-dashboard-panel">
-                    <h5>All Products — ARROV</h5>
-                    <p class="sfdc-dashboard-kpis">
-                        <strong>Total:</strong> <span id="kpiAllArrovTotal">—</span> |
-                        <strong>Avg/Month:</strong> <span id="kpiAllArrovAvg">—</span> |
-                        <strong>Deals:</strong> <span id="kpiAllArrovDeals">—</span>
-                    </p>
-                    <div class="sfdc-dashboard-placeholder">
-                        Chart placeholder<br />
-                        <small>(stacked bar chart — Team by Month)</small>
-                    </div>
-                </div>
+    <div id="dashboardEmptyProduct" class="dashboard-empty">
+        <strong class="d-block mb-2">No data found</strong>
+        <span class="text-muted">Try changing the fiscal year or product filters.</span>
+    </div>
 
-                <div class="sfdc-dashboard-panel">
-                    <h5>By Product Family</h5>
-                    <p class="sfdc-dashboard-kpis">
-                        <strong>Families:</strong> <span id="kpiProductFamilyCount">—</span> |
-                        <strong>Total:</strong> <span id="kpiProductFamilyTotal">—</span>
-                    </p>
-                    <div class="sfdc-dashboard-placeholder">
-                        Chart placeholder<br />
-                        <small>(breakdown by Product Family)</small>
-                    </div>
-                </div>
-
-                <div class="sfdc-dashboard-panel">
-                    <h5>By Team</h5>
-                    <p class="sfdc-dashboard-kpis">
-                        <strong>Teams:</strong> <span id="kpiTeamCount">—</span> |
-                        <strong>Total:</strong> <span id="kpiTeamTotal">—</span>
-                    </p>
-                    <div class="sfdc-dashboard-placeholder">
-                        Chart placeholder<br />
-                        <small>(breakdown by Team)</small>
-                    </div>
-                </div>
-
-                <div class="sfdc-dashboard-panel">
-                    <h5>By Stage</h5>
-                    <p class="sfdc-dashboard-kpis">
-                        <strong>Stages:</strong> <span id="kpiStageCount">—</span> |
-                        <strong>Total:</strong> <span id="kpiStageTotal">—</span>
-                    </p>
-                    <div class="sfdc-dashboard-placeholder">
-                        Chart placeholder<br />
-                        <small>(breakdown by Stage)</small>
-                    </div>
-                </div>
-
+    <div id="dashboardContentProduct" style="display:none;">
+        <div class="dashboard-kpis">
+            <div class="dashboard-kpi-card">
+                <div class="dashboard-kpi-label">Total Pipeline AOV</div>
+                <div class="dashboard-kpi-value" id="kpiTotalPipelineAovProduct">—</div>
             </div>
 
-            <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid #dee2e6;">
-                <h5>Dashboard Notes</h5>
-                <p class="text-muted" style="font-size: 12px; margin: 0;">
-                    Dashboard is currently in wireframe mode. Charts and KPI calculations will be populated
-                    in a follow-up phase using Chart.js with ARROV aggregation by Product Family, Team, and Month
-                    within the selected fiscal year (April – March).
-                </p>
+            <div class="dashboard-kpi-card">
+                <div class="dashboard-kpi-label">Weighted Pipeline</div>
+                <div class="dashboard-kpi-value" id="kpiWeightedPipelineProduct">—</div>
+            </div>
+
+            <div class="dashboard-kpi-card">
+                <div class="dashboard-kpi-label">Avg Age</div>
+                <div class="dashboard-kpi-value" id="kpiAvgAgeProduct">—</div>
+            </div>
+
+            <div class="dashboard-kpi-card">
+                <div class="dashboard-kpi-label">Opp Count</div>
+                <div class="dashboard-kpi-value" id="kpiOppCountProduct">—</div>
             </div>
         </div>
 
-        <div id="dashboardErrorProduct" style="display: none; color: #842029; background-color: #f8d7da; border: 1px solid #f5c2c7; padding: 12px; border-radius: 4px;">
-            <strong>Error:</strong> <span id="dashboardErrorMessageProduct">Failed to load dashboard data.</span>
+        <div class="dashboard-panels">
+            <div class="dashboard-panel">
+                <div class="dashboard-panel-header">
+                    <h5 class="dashboard-panel-title">Pipeline by Stage</h5>
+                    <p class="dashboard-panel-subtitle">Deduplicated AOV Multi by stage</p>
+                </div>
+                <div class="dashboard-chart-wrap">
+                    <canvas id="chartPipelineByStageProduct"></canvas>
+                </div>
+            </div>
+
+            <div class="dashboard-panel">
+                <div class="dashboard-panel-header">
+                    <h5 class="dashboard-panel-title">Pipeline by Team</h5>
+                    <p class="dashboard-panel-subtitle">Deduplicated AOV Multi, split by stage</p>
+                </div>
+                <div class="dashboard-chart-wrap">
+                    <canvas id="chartPipelineByTeamProduct"></canvas>
+                </div>
+            </div>
+
+            <div class="dashboard-panel">
+                <div class="dashboard-panel-header">
+                    <h5 class="dashboard-panel-title">Age vs AOV</h5>
+                    <p class="dashboard-panel-subtitle">Opportunity-level scatter</p>
+                </div>
+                <div class="dashboard-chart-wrap">
+                    <canvas id="chartAgeVsAovProduct"></canvas>
+                </div>
+            </div>
+
+            <div class="dashboard-panel">
+                <div class="dashboard-panel-header">
+                    <h5 class="dashboard-panel-title">Probability Distribution</h5>
+                    <p class="dashboard-panel-subtitle">Deduplicated opportunities by probability bucket</p>
+                </div>
+                <div class="dashboard-chart-wrap">
+                    <canvas id="chartProbabilityDistributionProduct"></canvas>
+                </div>
+            </div>
+
+            <div class="dashboard-panel">
+                <div class="dashboard-panel-header">
+                    <h5 class="dashboard-panel-title">Product Family Mix</h5>
+                    <p class="dashboard-panel-subtitle">Cleaned ARROV by Product Family</p>
+                </div>
+                <div class="dashboard-chart-wrap">
+                    <canvas id="chartProductFamilyMixProduct"></canvas>
+                </div>
+            </div>
+
+            <div class="dashboard-panel">
+                <div class="dashboard-panel-header">
+                    <h5 class="dashboard-panel-title">Close Date Timeline</h5>
+                    <p class="dashboard-panel-subtitle">Deduplicated AOV Multi by close date</p>
+                </div>
+                <div class="dashboard-chart-wrap">
+                    <canvas id="chartCloseTimelineProduct"></canvas>
+                </div>
+            </div>
+
+            <div class="dashboard-panel panel-full">
+                <div class="dashboard-panel-header">
+                    <h5 class="dashboard-panel-title">Monthly Team AOV</h5>
+                    <p class="dashboard-panel-subtitle">Fiscal month order Apr → Mar, deduplicated AOV Multi</p>
+                </div>
+                <div class="dashboard-chart-wrap chart-tall">
+                    <canvas id="chartMonthlyTeamFiscalProduct"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-3">
+            <p class="dashboard-footnote">
+                <strong>Opportunity-level charts and KPIs</strong> use deduplicated <strong>AOV Multi</strong> counted once per Opp Ref.
+                <strong>Product Family Mix</strong> uses row-level <strong>cleaned_ARROV</strong>.
+            </p>
         </div>
     </div>
 </div>
-
-<script>
-    // Dashboard wireframe - basic structure
-    (function(window, document) {
-        'use strict';
-
-        const DashboardConfig = {
-            endpoint: '../api/sfdc_product_pipeline.php?action=get_dashboard_data',
-            currentData: null,
-            initialized: false
-        };
-
-        function getCurrentFiscalYear() {
-            const now = new Date();
-            const month = now.getMonth() + 1;
-            const year = now.getFullYear();
-            return month >= 4 ? year + 1 : year;
-        }
-
-        function showState(state, errorMessage) {
-            const loadingEl = document.getElementById('dashboardLoadingProduct');
-            const contentEl = document.getElementById('dashboardContentProduct');
-            const errorEl = document.getElementById('dashboardErrorProduct');
-            const errorMsgEl = document.getElementById('dashboardErrorMessageProduct');
-
-            if (loadingEl) loadingEl.style.display = state === 'loading' ? 'block' : 'none';
-            if (contentEl) contentEl.style.display = state === 'content' ? 'block' : 'none';
-            if (errorEl) errorEl.style.display = state === 'error' ? 'block' : 'none';
-
-            if (state === 'error' && errorMsgEl) {
-                errorMsgEl.textContent = errorMessage || 'Unknown error';
-            }
-        }
-
-        function updateKpiDisplays(data) {
-            if (!data || !data.data) {
-                console.log('No data to display on dashboard.');
-                return;
-            }
-
-            const allKpi = (data.data.All && data.data.All.kpi) ? data.data.All.kpi : {};
-
-            // All products metrics
-            document.getElementById('kpiAllArrovTotal').textContent =
-                allKpi.total_arrov ? '€' + Number(allKpi.total_arrov).toLocaleString('en-US', {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2
-                }) : '—';
-            document.getElementById('kpiAllArrovAvg').textContent =
-                allKpi.avg_arrov ? '€' + Number(allKpi.avg_arrov).toLocaleString('en-US', {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2
-                }) : '—';
-            document.getElementById('kpiAllArrovDeals').textContent = allKpi.deal_count || '—';
-
-            // Family and team counts
-            const families = (data.families || []).length;
-            const teams = (data.teams || []).length;
-            document.getElementById('kpiProductFamilyCount').textContent = families || '—';
-            document.getElementById('kpiTeamCount').textContent = teams || '—';
-
-            // Totals (same for all breakdowns in wireframe)
-            document.getElementById('kpiProductFamilyTotal').textContent =
-                allKpi.total_arrov ? '€' + Number(allKpi.total_arrov).toLocaleString('en-US', {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2
-                }) : '—';
-            document.getElementById('kpiTeamTotal').textContent =
-                allKpi.total_arrov ? '€' + Number(allKpi.total_arrov).toLocaleString('en-US', {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2
-                }) : '—';
-            document.getElementById('kpiStageTotal').textContent =
-                allKpi.total_arrov ? '€' + Number(allKpi.total_arrov).toLocaleString('en-US', {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2
-                }) : '—';
-
-            document.getElementById('kpiStageCount').textContent = '—'; // TODO: calculate unique stages
-        }
-
-        function fetchDashboardData(fiscalYear) {
-            showState('loading');
-
-            const url = DashboardConfig.endpoint + '&fiscal_year=' + encodeURIComponent(fiscalYear);
-
-            fetch(url, {
-                    method: 'GET',
-                    credentials: 'same-origin'
-                })
-                .then(function(response) {
-                    if (!response.ok) {
-                        throw new Error('API returned status ' + response.status);
-                    }
-                    return response.json();
-                })
-                .then(function(result) {
-                    if (!result.success) {
-                        throw new Error(result.error || 'API returned success=false');
-                    }
-
-                    DashboardConfig.currentData = result.data;
-                    updateKpiDisplays(result.data);
-                    showState('content');
-                })
-                .catch(function(error) {
-                    console.error('Dashboard fetch error:', error);
-                    showState('error', error.message);
-                });
-        }
-
-        function initDashboard() {
-            if (DashboardConfig.initialized) return;
-
-            const dashboardTab = document.getElementById('product-pipeline-dashboard-tab');
-            if (!dashboardTab) return;
-
-            const yearDropdown = document.getElementById('dashboardFiscalYearProduct');
-            const refreshBtn = document.getElementById('dashboardRefreshProduct');
-
-            if (yearDropdown) {
-                yearDropdown.addEventListener('change', function() {
-                    fetchDashboardData(this.value);
-                });
-            }
-
-            if (refreshBtn) {
-                refreshBtn.addEventListener('click', function() {
-                    const fy = yearDropdown ? yearDropdown.value : getCurrentFiscalYear();
-                    fetchDashboardData(fy);
-                });
-            }
-
-            document.addEventListener('sfdcTabChanged', function(event) {
-                if (!event.detail || event.detail.tab !== 'dashboard') return;
-                const fy = yearDropdown ? yearDropdown.value : getCurrentFiscalYear();
-                fetchDashboardData(fy);
-            });
-
-            DashboardConfig.initialized = true;
-
-            // Auto-load if dashboard is visible on page load
-            if (dashboardTab.classList.contains('active')) {
-                const fy = yearDropdown ? yearDropdown.value : getCurrentFiscalYear();
-                fetchDashboardData(fy);
-            }
-        }
-
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initDashboard);
-        } else {
-            initDashboard();
-        }
-
-    })(window, document);
-</script>
