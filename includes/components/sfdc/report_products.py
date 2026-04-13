@@ -152,16 +152,12 @@ def process_data(df, links_map):
     # 1. Sanitize column names first
     df = sanitize_columns(df)
 
-    # 2. Map the Links (from Product Name or Product Code)
-    if 'Product_Name' in df.columns:
-        df['Link'] = df['Product_Name'].str.strip().map(links_map)
-
-    # If Product_Name didn't have links, try Product_Code
-    if 'Link' not in df.columns or df['Link'].isna().all():
-        if 'Product_Code' in df.columns:
-            df['Link'] = df['Product_Code'].str.strip().map(links_map)
-        else:
-            df['Link'] = None
+    # 2. Map the Links from Opportunity_Name
+    if 'Opportunity_Name' in df.columns:
+        df['Link'] = df['Opportunity_Name'].astype(
+            str).str.strip().map(links_map)
+    else:
+        df['Link'] = None
 
     # 3. Handle Dates (European format: DD.MM.YYYY)
     date_patterns = ['Date', 'Close', 'Modified', 'Change', 'Created']
