@@ -399,6 +399,7 @@
                         }
                     },
                     y: {
+                        type: 'logarithmic', // This is the magic line
                         title: {
                             display: true,
                             text: 'AOV'
@@ -622,6 +623,7 @@
                         }
                     },
                     y: {
+                        type: 'logarithmic', // This is the magic line
                         ticks: {
                             callback: function (value) {
                                 return formatCurrency(value);
