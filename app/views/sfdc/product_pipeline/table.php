@@ -348,7 +348,7 @@ $productRows = $productRows ?? [];
                             searchable: true
                         },
                         {
-                            targets: [4, 5, 6, 7, 8, 13, 14, 21, 22, 23],
+                            targets: [4, 5, 6, 7, 8, 11, 13, 14, 21, 22, 23],
                             className: 'dt-nowrap dt-compact'
                         },
                         {
