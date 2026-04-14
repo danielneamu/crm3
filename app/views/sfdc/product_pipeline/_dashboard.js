@@ -251,6 +251,14 @@
                 var filters = payload.filters || {};
                 var cards = payload.cards || {};
                 var charts = payload.charts || {};
+                
+                // error_log_process
+                var debug = payload.debug || {};
+                if (debug.normalization_mismatches && debug.normalization_mismatches.length) {
+                    console.log('Check for mismatches in cleaning values. Logs are found in model/controller/dashboard.js around "error_log_process"');
+                    console.table(debug.normalization_mismatches);
+                }
+                // end error_log_process
 
                 DashboardConfig.currentData = payload;
 

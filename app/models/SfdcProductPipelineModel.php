@@ -468,12 +468,18 @@ class SfdcProductPipelineModel extends SfdcBaseModel
 
             // Check if sum matches AOV Multi
             if (abs($cleanedSum - $aovMulti) >= 0.01) {
-                $mismatches[] = sprintf(
-                    '%s: cleaned sum %.2f ≠ AOV Multi %.2f',
-                    $oppRef,
-                    round($cleanedSum, 2),
-                    round($aovMulti, 2)
-                );
+                $this->normalizationMismatches[] = [
+                    'opp_ref' => $oppRef,
+                    'cleaned_sum' => round($cleanedSum, 2),
+                    'aov_multi' => round($aovMulti, 2),
+                    'delta' => round($cleanedSum - $aovMulti, 2),
+                    'message' => sprintf(
+                        '%s: cleaned sum %.2f ≠ AOV Multi %.2f',
+                        $oppRef,
+                        round($cleanedSum, 2),
+                        round($aovMulti, 2)
+                    )
+                ];
             }
         }
 
@@ -848,4 +854,13 @@ class SfdcProductPipelineModel extends SfdcBaseModel
         $year = (int)date('Y');
         return $month >= 4 ? $year + 1 : $year;
     }
+
+    // error_log_process
+    protected $normalizationMismatches = [];
+
+    public function getNormalizationMismatches()
+    {
+        return $this->normalizationMismatches;
+    }
+    //end error_log_process
 }

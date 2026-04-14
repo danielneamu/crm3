@@ -145,10 +145,14 @@ class SfdcProductPipelineController extends SfdcBaseController
 
             // 2) Raw filtered rows
             $rawRows = $this->model->getFilteredRawRows($filters);
-     
+
             // 3) Centralized cleaning layer (applies ARROV normalization + logs mismatches)
             $cleanedRows = $this->model->cleanRowArrovValues($rawRows);
-     
+
+            // 3b) Pull debug info separately from model - error_log_processs
+            $normalizationMismatches = $this->model->getNormalizationMismatches();
+            // end error_log_process
+
             // 4) Deduplicated opportunity dataset
             $uniqueOppRows = $this->model->buildUniqueOpportunityRows($cleanedRows);
 
@@ -165,6 +169,11 @@ class SfdcProductPipelineController extends SfdcBaseController
                     'closeTimeline' => $this->model->getCloseTimeline($uniqueOppRows),
                     'monthlyTeamFiscal' => $this->model->getMonthlyTeamFiscalChart($cleanedRows),
                 ],
+                // error_log_process
+                'debug' => [
+                    'normalization_mismatches' => $normalizationMismatches,
+                ],
+                //end error_log_process
             ];
 
             $this->jsonSuccess($payload);
@@ -172,6 +181,4 @@ class SfdcProductPipelineController extends SfdcBaseController
             $this->jsonError('Failed to load dashboard data: ' . $e->getMessage(), 500);
         }
     }
-
-
-}
+    }
