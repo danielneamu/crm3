@@ -1,7 +1,15 @@
 (function (window, document) {
     'use strict';
 
-    const DashboardConfig = {
+    var MULTISELECT_OPTS_BASE = {
+        buttonClass: 'btn btn-light',
+        numberDisplayed: 100,
+        allSelectedText: false,
+        includeSelectAllOption: true,
+        buttonWidth: '100%'
+    };
+
+    var DashboardConfig = {
         endpoint: '../api/sfdc_product_pipeline.php?action=get_dashboard_data',
         initialized: false,
         currentData: null,
@@ -30,7 +38,7 @@
     }
 
     function formatCurrency(value) {
-        const num = Number(value || 0);
+        var num = Number(value || 0);
         return '€' + num.toLocaleString('en-US', {
             minimumFractionDigits: 0,
             maximumFractionDigits: 0
@@ -45,18 +53,73 @@
     }
 
     function getCurrentFiscalYear() {
-        const now = new Date();
-        const month = now.getMonth() + 1;
-        const year = now.getFullYear();
+        var now = new Date();
+        var month = now.getMonth() + 1;
+        var year = now.getFullYear();
         return month >= 4 ? year + 1 : year;
     }
 
+    function initMultiselect(selectEl, nonSelectedText) {
+        if (!selectEl || typeof $ === 'undefined' || !$.fn.multiselect) return;
+
+        var $sel = $(selectEl);
+
+        try { $sel.multiselect('destroy'); } catch (e) { }
+
+        $sel.multiselect({
+            buttonClass: 'btn btn-light form-select',
+            buttonWidth: '100%',
+            numberDisplayed: 100,
+            allSelectedText: false,
+            includeSelectAllOption: true,
+            nonSelectedText: nonSelectedText || 'Select...',
+            templates: {
+                button:
+                    '<button type="button" class="multiselect dropdown-toggle btn btn-light form-select" data-bs-toggle="dropdown" aria-expanded="false">' +
+                    '<span class="multiselect-selected-text"></span>' +
+                    '</button>'
+            }
+        });
+    }
+
+    function ensureArray(value) {
+        return Array.isArray(value) ? value : [];
+    }
+
+    function getSelectedValues(selectEl) {
+        if (!selectEl) return [];
+        return Array.from(selectEl.selectedOptions || [])
+            .map(function (option) { return option.value; })
+            .filter(function (value) { return value !== ''; });
+    }
+
+    function setMultiSelectOptions(selectEl, options, selectedValues) {
+        if (!selectEl) return;
+
+        var selectedSet = new Set(selectedValues || []);
+        selectEl.innerHTML = '';
+
+        options.forEach(function (value) {
+            var option = document.createElement('option');
+            option.value = value;
+            option.textContent = value;
+            if (selectedSet.has(value)) {
+                option.selected = true;
+            }
+            selectEl.appendChild(option);
+        });
+
+        if (typeof $ !== 'undefined' && $.fn.multiselect) {
+            try { $(selectEl).multiselect('rebuild'); } catch (e) { }
+        }
+    }
+
     function showState(state, errorMessage) {
-        const loadingEl = getEl('dashboardLoadingProduct');
-        const contentEl = getEl('dashboardContentProduct');
-        const errorEl = getEl('dashboardErrorProduct');
-        const emptyEl = getEl('dashboardEmptyProduct');
-        const errorMsgEl = getEl('dashboardErrorMessageProduct');
+        var loadingEl = getEl('dashboardLoadingProduct');
+        var contentEl = getEl('dashboardContentProduct');
+        var errorEl = getEl('dashboardErrorProduct');
+        var emptyEl = getEl('dashboardEmptyProduct');
+        var errorMsgEl = getEl('dashboardErrorMessageProduct');
 
         if (loadingEl) loadingEl.style.display = state === 'loading' ? 'block' : 'none';
         if (contentEl) contentEl.style.display = state === 'content' ? 'block' : 'none';
@@ -83,44 +146,15 @@
         return DashboardConfig.palette[index % DashboardConfig.palette.length];
     }
 
-    function ensureArray(value) {
-        return Array.isArray(value) ? value : [];
-    }
-
-    function getSelectedValues(selectEl) {
-        if (!selectEl) return [];
-        return Array.from(selectEl.selectedOptions || [])
-            .map(option => option.value)
-            .filter(value => value !== '');
-    }
-
-    function setMultiSelectOptions(selectEl, options, selectedValues) {
-        if (!selectEl) return;
-
-        const selectedSet = new Set(selectedValues || []);
-        selectEl.innerHTML = '';
-
-        options.forEach(function (value) {
-            const option = document.createElement('option');
-            option.value = value;
-            option.textContent = value;
-            if (selectedSet.has(value)) {
-                option.selected = true;
-            }
-            selectEl.appendChild(option);
-        });
-    }
-
     function loadDashboardFilters(payloadFilters) {
-        const familySelect = getEl('dashboardProductFamilyProduct');
-        const nameSelect = getEl('dashboardProductNameProduct');
+        var familySelect = getEl('dashboardProductFamilyProduct');
+        var nameSelect = getEl('dashboardProductNameProduct');
 
-        const families = ensureArray(payloadFilters.productFamilies);
-        const allNames = ensureArray(payloadFilters.allProductNames);
+        var families = ensureArray(payloadFilters.productFamilies);
 
         setMultiSelectOptions(familySelect, families, DashboardConfig.filters.productFamilies);
 
-        const validFamilySet = new Set(families);
+        var validFamilySet = new Set(families);
         DashboardConfig.filters.productFamilies = DashboardConfig.filters.productFamilies.filter(function (family) {
             return validFamilySet.has(family);
         });
@@ -129,24 +163,27 @@
             Array.from(familySelect.options).forEach(function (option) {
                 option.selected = DashboardConfig.filters.productFamilies.includes(option.value);
             });
+            if (typeof $ !== 'undefined' && $.fn.multiselect) {
+                try { $(familySelect).multiselect('rebuild'); } catch (e) { }
+            }
         }
 
-        const nextNames = syncProductNameOptions(payloadFilters);
+        var nextNames = syncProductNameOptions(payloadFilters);
         setMultiSelectOptions(nameSelect, nextNames.availableNames, nextNames.selectedNames);
         DashboardConfig.filters.productNames = nextNames.selectedNames;
     }
 
     function syncProductNameOptions(payloadFilters) {
-        const selectedFamilies = DashboardConfig.filters.productFamilies.slice();
-        const allNames = ensureArray(payloadFilters.allProductNames);
-        const namesByFamily = payloadFilters.productNamesByFamily || {};
+        var selectedFamilies = DashboardConfig.filters.productFamilies.slice();
+        var allNames = ensureArray(payloadFilters.allProductNames);
+        var namesByFamily = payloadFilters.productNamesByFamily || {};
 
-        let availableNames = [];
+        var availableNames = [];
 
         if (selectedFamilies.length === 0) {
             availableNames = allNames.slice();
         } else {
-            const merged = new Set();
+            var merged = new Set();
             selectedFamilies.forEach(function (family) {
                 ensureArray(namesByFamily[family]).forEach(function (name) {
                     merged.add(name);
@@ -155,8 +192,8 @@
             availableNames = Array.from(merged).sort();
         }
 
-        const validNameSet = new Set(availableNames);
-        const selectedNames = DashboardConfig.filters.productNames.filter(function (name) {
+        var validNameSet = new Set(availableNames);
+        var selectedNames = DashboardConfig.filters.productNames.filter(function (name) {
             return validNameSet.has(name);
         });
 
@@ -167,9 +204,9 @@
     }
 
     function updateFilterStateFromInputs() {
-        const fiscalYearEl = getEl('dashboardFiscalYearProduct');
-        const familySelect = getEl('dashboardProductFamilyProduct');
-        const nameSelect = getEl('dashboardProductNameProduct');
+        var fiscalYearEl = getEl('dashboardFiscalYearProduct');
+        var familySelect = getEl('dashboardProductFamilyProduct');
+        var nameSelect = getEl('dashboardProductNameProduct');
 
         DashboardConfig.filters.fiscalYear = fiscalYearEl ? fiscalYearEl.value : String(getCurrentFiscalYear());
         DashboardConfig.filters.productFamilies = getSelectedValues(familySelect);
@@ -177,7 +214,7 @@
     }
 
     function buildUrl() {
-        const params = new URLSearchParams();
+        var params = new URLSearchParams();
         params.set('fiscal_year', DashboardConfig.filters.fiscalYear || String(getCurrentFiscalYear()));
 
         if (DashboardConfig.filters.productFamilies.length > 0) {
@@ -210,16 +247,16 @@
                     throw new Error(result.error || 'API returned success=false');
                 }
 
-                const payload = result.data || {};
-                const filters = payload.filters || {};
-                const cards = payload.cards || {};
-                const charts = payload.charts || {};
+                var payload = result.data || {};
+                var filters = payload.filters || {};
+                var cards = payload.cards || {};
+                var charts = payload.charts || {};
 
                 DashboardConfig.currentData = payload;
 
                 loadDashboardFilters(filters);
 
-                const hasAnyData =
+                var hasAnyData =
                     Number(cards.oppCount || 0) > 0 ||
                     (charts.stage && ensureArray(charts.stage.labels).length > 0) ||
                     (charts.productFamilyMix && ensureArray(charts.productFamilyMix.labels).length > 0);
@@ -249,10 +286,10 @@
     }
 
     function renderCards(cards) {
-        const totalPipelineEl = getEl('kpiTotalPipelineAovProduct');
-        const weightedEl = getEl('kpiWeightedPipelineProduct');
-        const avgAgeEl = getEl('kpiAvgAgeProduct');
-        const oppCountEl = getEl('kpiOppCountProduct');
+        var totalPipelineEl = getEl('kpiTotalPipelineAovProduct');
+        var weightedEl = getEl('kpiWeightedPipelineProduct');
+        var avgAgeEl = getEl('kpiAvgAgeProduct');
+        var oppCountEl = getEl('kpiOppCountProduct');
 
         if (totalPipelineEl) totalPipelineEl.textContent = formatCurrency(cards.totalPipelineAov || 0);
         if (weightedEl) weightedEl.textContent = formatCurrency(cards.weightedPipeline || 0);
@@ -263,7 +300,7 @@
     function renderStageChart(chartData) {
         destroyChart('stage');
 
-        const canvas = getEl('chartPipelineByStageProduct');
+        var canvas = getEl('chartPipelineByStageProduct');
         if (!canvas) return;
 
         DashboardConfig.charts.stage = new Chart(canvas, {
@@ -308,10 +345,10 @@
     function renderTeamChart(chartData) {
         destroyChart('team');
 
-        const canvas = getEl('chartPipelineByTeamProduct');
+        var canvas = getEl('chartPipelineByTeamProduct');
         if (!canvas) return;
 
-        const datasets = ensureArray(chartData.datasets).map(function (dataset, index) {
+        var datasets = ensureArray(chartData.datasets).map(function (dataset, index) {
             return {
                 label: dataset.label,
                 data: ensureArray(dataset.data),
@@ -357,10 +394,10 @@
     function renderAgeAovChart(chartData) {
         destroyChart('ageAov');
 
-        const canvas = getEl('chartAgeVsAovProduct');
+        var canvas = getEl('chartAgeVsAovProduct');
         if (!canvas) return;
 
-        const datasets = ensureArray(chartData.datasets).map(function (dataset, index) {
+        var datasets = ensureArray(chartData.datasets).map(function (dataset, index) {
             return {
                 label: dataset.label,
                 data: ensureArray(dataset.data),
@@ -380,7 +417,7 @@
                     tooltip: {
                         callbacks: {
                             label: function (context) {
-                                const point = context.raw || {};
+                                var point = context.raw || {};
                                 return [
                                     'Age: ' + formatNumber(point.x || 0, 0),
                                     'AOV: ' + formatCurrency(point.y || 0),
@@ -399,7 +436,7 @@
                         }
                     },
                     y: {
-                        type: 'logarithmic', // This is the magic line
+                        type: 'logarithmic',
                         title: {
                             display: true,
                             text: 'AOV'
@@ -418,14 +455,14 @@
     function renderProbabilityChart(chartData) {
         destroyChart('probability');
 
-        const canvas = getEl('chartProbabilityDistributionProduct');
+        var canvas = getEl('chartProbabilityDistributionProduct');
         if (!canvas) return;
 
-        const labels = ensureArray(chartData.labels);
-        const countValues = Array.isArray(chartData.countValues)
+        var labels = ensureArray(chartData.labels);
+        var countValues = Array.isArray(chartData.countValues)
             ? chartData.countValues
             : Object.values(chartData.countValues || {});
-        const aovValues = Array.isArray(chartData.aovValues)
+        var aovValues = Array.isArray(chartData.aovValues)
             ? chartData.aovValues
             : Object.values(chartData.aovValues || {});
 
@@ -520,7 +557,7 @@
     function renderProductFamilyMixChart(chartData) {
         destroyChart('productFamilyMix');
 
-        const canvas = getEl('chartProductFamilyMixProduct');
+        var canvas = getEl('chartProductFamilyMixProduct');
         if (!canvas) return;
 
         DashboardConfig.charts.productFamilyMix = new Chart(canvas, {
@@ -565,11 +602,11 @@
     function renderCloseTimelineChart(chartData) {
         destroyChart('closeTimeline');
 
-        const canvas = getEl('chartCloseTimelineProduct');
+        var canvas = getEl('chartCloseTimelineProduct');
         if (!canvas) return;
 
-        const points = ensureArray(chartData.points);
-        const labels = points.map(function (point) {
+        var points = ensureArray(chartData.points);
+        var labels = points.map(function (point) {
             return point.x;
         });
 
@@ -600,7 +637,7 @@
                     tooltip: {
                         callbacks: {
                             label: function (context) {
-                                const point = context.raw || {};
+                                var point = context.raw || {};
                                 return [
                                     'Close Date: ' + (point.closeDate || ''),
                                     'AOV: ' + formatCurrency(point.y || 0),
@@ -617,13 +654,13 @@
                         type: 'linear',
                         ticks: {
                             callback: function (value) {
-                                const index = Math.round(value) - 1;
+                                var index = Math.round(value) - 1;
                                 return labels[index] || '';
                             }
                         }
                     },
                     y: {
-                        type: 'logarithmic', // This is the magic line
+                        type: 'logarithmic',
                         ticks: {
                             callback: function (value) {
                                 return formatCurrency(value);
@@ -638,10 +675,10 @@
     function renderMonthlyTeamFiscalChart(chartData) {
         destroyChart('monthlyTeamFiscal');
 
-        const canvas = getEl('chartMonthlyTeamFiscalProduct');
+        var canvas = getEl('chartMonthlyTeamFiscalProduct');
         if (!canvas) return;
 
-        const datasets = ensureArray(chartData.datasets).map(function (dataset, index) {
+        var datasets = ensureArray(chartData.datasets).map(function (dataset, index) {
             return {
                 label: dataset.label,
                 data: ensureArray(dataset.data),
@@ -685,11 +722,11 @@
     }
 
     function handleFamilyChange() {
-        const familySelect = getEl('dashboardProductFamilyProduct');
+        var familySelect = getEl('dashboardProductFamilyProduct');
         DashboardConfig.filters.productFamilies = getSelectedValues(familySelect);
 
         if (DashboardConfig.currentData && DashboardConfig.currentData.filters) {
-            const nameData = syncProductNameOptions(DashboardConfig.currentData.filters);
+            var nameData = syncProductNameOptions(DashboardConfig.currentData.filters);
             setMultiSelectOptions(
                 getEl('dashboardProductNameProduct'),
                 nameData.availableNames,
@@ -700,9 +737,9 @@
     }
 
     function handleReset() {
-        const fiscalYearEl = getEl('dashboardFiscalYearProduct');
-        const familySelect = getEl('dashboardProductFamilyProduct');
-        const nameSelect = getEl('dashboardProductNameProduct');
+        var fiscalYearEl = getEl('dashboardFiscalYearProduct');
+        var familySelect = getEl('dashboardProductFamilyProduct');
+        var nameSelect = getEl('dashboardProductNameProduct');
 
         DashboardConfig.filters = {
             fiscalYear: fiscalYearEl ? fiscalYearEl.value : String(getCurrentFiscalYear()),
@@ -710,17 +747,15 @@
             productNames: []
         };
 
-        if (familySelect) {
-            Array.from(familySelect.options).forEach(function (option) {
+        [familySelect, nameSelect].forEach(function (sel) {
+            if (!sel) return;
+            Array.from(sel.options).forEach(function (option) {
                 option.selected = false;
             });
-        }
-
-        if (nameSelect) {
-            Array.from(nameSelect.options).forEach(function (option) {
-                option.selected = false;
-            });
-        }
+            if (typeof $ !== 'undefined' && $.fn.multiselect) {
+                try { $(sel).multiselect('rebuild'); } catch (e) { }
+            }
+        });
 
         fetchDashboardData();
     }
@@ -728,17 +763,21 @@
     function initDashboard() {
         if (DashboardConfig.initialized) return;
 
-        const dashboardTab = document.getElementById('product-pipeline-dashboard-tab');
+        var dashboardTab = document.getElementById('product-pipeline-dashboard-tab');
         if (!dashboardTab) return;
 
-        const yearDropdown = getEl('dashboardFiscalYearProduct');
-        const refreshBtn = getEl('dashboardRefreshProduct');
-        const resetBtn = getEl('dashboardResetProduct');
-        const familySelect = getEl('dashboardProductFamilyProduct');
+        var yearDropdown = getEl('dashboardFiscalYearProduct');
+        var refreshBtn = getEl('dashboardRefreshProduct');
+        var resetBtn = getEl('dashboardResetProduct');
+        var familySelect = getEl('dashboardProductFamilyProduct');
+        var nameSelect = getEl('dashboardProductNameProduct');
+
+        initMultiselect(familySelect, 'All families...');
+        initMultiselect(nameSelect, 'All products...');
 
         if (yearDropdown) {
-            const currentFy = String(getCurrentFiscalYear());
-            const existingOption = Array.from(yearDropdown.options).find(function (option) {
+            var currentFy = String(getCurrentFiscalYear());
+            var existingOption = Array.from(yearDropdown.options).find(function (option) {
                 return option.value === currentFy;
             });
 

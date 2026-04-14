@@ -24,15 +24,60 @@
         display: grid;
         grid-template-columns: repeat(4, minmax(0, 1fr));
         gap: 1rem;
-        align-items: end;
+        align-items: start;
     }
 
     .sfdc-product-dashboard .dashboard-toolbar .toolbar-actions {
         display: flex;
         gap: 0.5rem;
         justify-content: flex-start;
-        align-items: end;
+        align-items: start;
         flex-wrap: wrap;
+        padding-top: 1.65rem;
+        /* align buttons with multiselect row */
+    }
+
+    /* ── Bootstrap-multiselect overrides ── */
+    .sfdc-product-dashboard .multiselect-native-select {
+        width: 100%;
+    }
+
+    .sfdc-product-dashboard .multiselect.dropdown-toggle {
+        width: 100% !important;
+        height: auto !important;
+        min-height: 38px;
+        text-align: left;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #fff;
+        border: 1px solid #ced4da;
+        border-radius: 0.375rem;
+        white-space: normal !important;
+        padding: 6px 12px;
+        font-size: 0.875rem;
+        color: #212529;
+    }
+
+    .sfdc-product-dashboard .multiselect.dropdown-toggle:hover,
+    .sfdc-product-dashboard .multiselect.dropdown-toggle:focus {
+        border-color: #86b7fe;
+        box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, .15);
+        outline: none;
+    }
+
+    .sfdc-product-dashboard .multiselect-selected-text {
+        display: inline-block;
+        white-space: normal;
+        word-break: break-word;
+        line-height: 1.4;
+    }
+
+    .sfdc-product-dashboard .multiselect-container {
+        width: 100%;
+        max-height: 260px;
+        overflow-y: auto;
+        font-size: 0.875rem;
     }
 
     .sfdc-product-dashboard .dashboard-kpis {
@@ -145,6 +190,10 @@
         .sfdc-product-dashboard .dashboard-panel.panel-full {
             grid-column: auto;
         }
+
+        .sfdc-product-dashboard .dashboard-toolbar .toolbar-actions {
+            padding-top: 0;
+        }
     }
 
     @media (max-width: 767.98px) {
@@ -153,6 +202,10 @@
         .sfdc-product-dashboard .dashboard-kpis,
         .sfdc-product-dashboard .dashboard-panels {
             grid-template-columns: 1fr;
+        }
+
+        .sfdc-product-dashboard .dashboard-toolbar .toolbar-actions {
+            padding-top: 0;
         }
     }
 </style>
@@ -173,12 +226,12 @@
 
             <div>
                 <label for="dashboardProductFamilyProduct" class="form-label fw-semibold">Product Family</label>
-                <select id="dashboardProductFamilyProduct" class="form-select" multiple></select>
+                <select id="dashboardProductFamilyProduct" multiple="multiple"></select>
             </div>
 
             <div>
                 <label for="dashboardProductNameProduct" class="form-label fw-semibold">Product Name</label>
-                <select id="dashboardProductNameProduct" class="form-select" multiple></select>
+                <select id="dashboardProductNameProduct" multiple="multiple"></select>
             </div>
 
             <div class="toolbar-actions">

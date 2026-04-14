@@ -128,9 +128,9 @@
                         <i class="bi bi-cloud-fill me-1"></i>SFDC
                     </a>
                     <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="sfdc_won.php">Won</a></li>
-                        <li><a class="dropdown-item" href="sfdc_product_pipeline.php">Products Pipeline</a></li>
-                        <li><a class="dropdown-item" href="sfdc_pipeline.php">Pipeline</a></li>
+                        <li><a class="dropdown-item" href="sfdc_won.php"><i class="bi bi-trophy-fill"></i><b> Won</b></a></li>
+                        <li><a class="dropdown-item" href="sfdc_product_pipeline.php"><i class="bi bi-funnel-fill"></i><b> Products Pipeline</b></a></li>
+                        <li><a class="dropdown-item" href="sfdc_pipeline.php"><i class="bi bi-graph-up-fill"></i> Pipeline</a></li>
                     </ul>
                 </li>
                 <li class="nav-item">

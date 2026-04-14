@@ -60,6 +60,13 @@ $tabConfig = [
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SFDC Product Pipeline</title>
 
+    <!-- Multi Select Plugin -->
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-multiselect/0.9.15/css/bootstrap-multiselect.css">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-multiselect/0.9.15/js/bootstrap-multiselect.min.js"></script>
+
+
     <!-- Bootstrap -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
@@ -190,14 +197,7 @@ $tabConfig = [
     <!-- Bootstrap Datepicker JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap-datepicker@1.10.0/dist/js/bootstrap-datepicker.min.js"></script>
 
-    <script>
-        $(document).ready(function() {
-            var dropdownElementList = [].slice.call(document.querySelectorAll('.dropdown-toggle'))
-            var dropdownList = dropdownElementList.map(function(dropdownToggleEl) {
-                return new bootstrap.Dropdown(dropdownToggleEl)
-            });
-        });
-    </script>
+
 
     <!-- Product Pipeline DataTable script -->
     <script src="../app/views/sfdc/product_pipeline/_datatable.js"></script>
