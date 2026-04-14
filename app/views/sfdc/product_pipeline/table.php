@@ -13,7 +13,7 @@ $productRows = $productRows ?? [];
                         <th>Group Month</th>
                         <th>Group Team</th>
                         <th>Group Family</th>
-                        <th>Product ID</th>
+                        <th>PID</th>
                         <th>Opp Ref</th>
                         <th>Team</th>
                         <th>Agent</th>
@@ -348,7 +348,7 @@ $productRows = $productRows ?? [];
                             searchable: true
                         },
                         {
-                            targets: [4, 5, 6, 7, 8, 11, 13, 14, 15, 16, 21, 22, 23],
+                            targets: [4, 5, 6, 7, 8, 9, 11, 13, 14, 15, 16, 21, 22, 23],
                             className: 'dt-nowrap dt-compact'
                         },
                         {
