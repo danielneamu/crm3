@@ -6,28 +6,14 @@ class SfdcProductPipelineModel extends SfdcBaseModel
 {
     protected $table = 'sfdc_product_pipeline';
 
-    /**
-     * Override parseFilters to include product_family and stage
-     * These are product-pipeline-specific filters
-     */
     protected function parseFilters(array $filters = [])
     {
-        // Get base filters from parent
         $baseFilters = parent::parseFilters($filters);
-
-        // Add product pipeline specific filters
         $baseFilters['product_family'] = isset($filters['product_family']) ? trim($filters['product_family']) : '';
         $baseFilters['stage'] = isset($filters['stage']) ? trim($filters['stage']) : '';
-
         return $baseFilters;
     }
 
-    /**
-     * Get unique teams from product pipeline (overrides parent)
-     * Queries sfdc_product_pipeline directly to show all teams with data
-     * 
-     * @return array List of Owner_Role values
-     */
     public function getTeams($source = 'main')
     {
         $sql = "
@@ -37,17 +23,10 @@ class SfdcProductPipelineModel extends SfdcBaseModel
               AND TRIM(Owner_Role) <> ''
             ORDER BY Owner_Role ASC
         ";
-
         $stmt = $this->conn->query($sql);
         return $stmt->fetchAll(PDO::FETCH_COLUMN);
     }
 
-    /**
-     * Get unique agents from product pipeline (overrides parent)
-     * Queries sfdc_product_pipeline directly to show all agents with data
-     * 
-     * @return array List of Opportunity_Owner values
-     */
     public function getAgents($source = 'main')
     {
         $sql = "
@@ -57,17 +36,10 @@ class SfdcProductPipelineModel extends SfdcBaseModel
               AND TRIM(Opportunity_Owner) <> ''
             ORDER BY Opportunity_Owner ASC
         ";
-
         $stmt = $this->conn->query($sql);
         return $stmt->fetchAll(PDO::FETCH_COLUMN);
     }
 
-    /**
-     * Get unique stages from product pipeline
-     * Returns all distinct Stage values for dropdown filter
-     * 
-     * @return array List of Stage values
-     */
     public function getStages()
     {
         $sql = "
@@ -77,17 +49,10 @@ class SfdcProductPipelineModel extends SfdcBaseModel
               AND TRIM(Stage) <> ''
             ORDER BY Stage ASC
         ";
-
         $stmt = $this->conn->query($sql);
         return $stmt->fetchAll(PDO::FETCH_COLUMN);
     }
 
-    /**
-     * Get all product pipeline rows with filters applied
-     * 
-     * @param array $filters Team, Agent, Stage, Month, Year, etc.
-     * @return array Rows with grouping/sorting metadata
-     */
     public function getAll(array $filters = [])
     {
         $params = [];
@@ -128,7 +93,6 @@ class SfdcProductPipelineModel extends SfdcBaseModel
 
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // Add metadata for grouping and sorting
         foreach ($rows as &$row) {
             $closeDate = $row['Close_Date'] ?? null;
             $ownerRole = trim((string)($row['Owner_Role'] ?? ''));
@@ -142,7 +106,6 @@ class SfdcProductPipelineModel extends SfdcBaseModel
                 $row['Group_Month_Label'] = date('F Y', $ts);
                 $row['Group_Month_Sort'] = date('Y-m', $ts);
 
-                // Fiscal quarter (Apr-Mar calendar)
                 if ($monthNum >= 4 && $monthNum <= 6) {
                     $row['Group_Fiscal_Quarter'] = 'Q1';
                 } elseif ($monthNum >= 7 && $monthNum <= 9) {
@@ -172,12 +135,6 @@ class SfdcProductPipelineModel extends SfdcBaseModel
         return $rows;
     }
 
-    /**
-     * Get single product pipeline row by ID
-     * 
-     * @param int $id Product_Pipeline_ID
-     * @return array|false Row data or false if not found
-     */
     public function getById($id)
     {
         $sql = "
@@ -217,11 +174,6 @@ class SfdcProductPipelineModel extends SfdcBaseModel
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
-    /**
-     * Get unique product families
-     * 
-     * @return array List of product families
-     */
     public function getProductFamilies()
     {
         $sql = "
@@ -236,177 +188,6 @@ class SfdcProductPipelineModel extends SfdcBaseModel
         return $stmt->fetchAll(PDO::FETCH_COLUMN);
     }
 
-    /**
-     * Get dashboard data for a fiscal year
-     * Aggregates ARROV by Product Family + Owner Role + Month
-     * 
-     * @param int $fiscalYear Fiscal year (e.g., 2026 = Apr 2025 - Mar 2026)
-     * @return array Dashboard structure with teams, families, monthly aggregates, KPIs
-     */
-    public function getDashboardData($fiscalYear)
-    {
-        $range = $this->getFiscalYearRange($fiscalYear);
-        $startDate = $range['start'];
-        $endDate = $range['end'];
-
-        // Query: aggregate by month, team, product family
-        $sql = "
-            SELECT 
-                MONTH(Close_Date) as month_num,
-                Owner_Role as team,
-                COALESCE(Product_Family, 'Uncategorized') as product_family,
-                SUM(CAST(Product_Annual_Recurring_Order_Value AS DECIMAL(15,2))) as total_arrov,
-                COUNT(*) as deal_count
-            FROM {$this->table}
-            WHERE Close_Date >= :start_date
-              AND Close_Date <= :end_date
-            GROUP BY MONTH(Close_Date), Owner_Role, Product_Family
-            ORDER BY MONTH(Close_Date), Owner_Role, Product_Family
-        ";
-
-        $stmt = $this->conn->prepare($sql);
-        $stmt->bindValue(':start_date', $startDate, PDO::PARAM_STR);
-        $stmt->bindValue(':end_date', $endDate, PDO::PARAM_STR);
-        $stmt->execute();
-
-        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        // Extract unique teams and families, sort alphabetically
-        $teams = array_unique(array_map(function ($row) {
-            return $row['team'];
-        }, $rows));
-        sort($teams);
-
-        $families = array_unique(array_map(function ($row) {
-            return $row['product_family'];
-        }, $rows));
-        sort($families);
-
-        // Initialize data structure: months 1-12, all teams, all families
-        $months = range(1, 12);
-        $data = [];
-
-        // Add 'All' (aggregate across all families)
-        $data['All'] = [
-            'arrov' => [],
-            'kpi' => ['total_arrov' => 0, 'deal_count' => 0, 'avg_arrov' => 0]
-        ];
-
-        // Add per-family buckets
-        foreach ($families as $family) {
-            $data[$family] = [
-                'arrov' => [],
-                'kpi' => ['total_arrov' => 0, 'deal_count' => 0, 'avg_arrov' => 0]
-            ];
-        }
-
-        // Initialize arrays for each team with zero values
-        foreach ($teams as $team) {
-            $data['All']['arrov'][$team] = array_fill(0, 12, 0);
-
-            foreach ($families as $family) {
-                $data[$family]['arrov'][$team] = array_fill(0, 12, 0);
-            }
-        }
-
-        // Populate data from query results
-        foreach ($rows as $row) {
-            $monthIdx = (int)$row['month_num'] - 1; // 0-indexed for array
-            $team = $row['team'];
-            $family = $row['product_family'];
-            $arrov = (float)$row['total_arrov'];
-            $deals = (int)$row['deal_count'];
-
-            // Ensure team arrays exist
-            if (!isset($data[$family]['arrov'][$team])) {
-                $data[$family]['arrov'][$team] = array_fill(0, 12, 0);
-            }
-
-            // Update family-specific data
-            $data[$family]['arrov'][$team][$monthIdx] = $arrov;
-
-            // Accumulate family-specific KPIs
-            $data[$family]['kpi']['total_arrov'] += $arrov;
-            $data[$family]['kpi']['deal_count'] += $deals;
-
-            // Also accumulate to 'All'
-            $data['All']['arrov'][$team][$monthIdx] += $arrov;
-            $data['All']['kpi']['total_arrov'] += $arrov;
-            $data['All']['kpi']['deal_count'] += $deals;
-        }
-
-        // Calculate averages per family
-        foreach (array_merge(['All'], $families) as $familyKey) {
-            if (!isset($data[$familyKey])) {
-                continue;
-            }
-
-            $kpi = &$data[$familyKey]['kpi'];
-
-            // Count months with data (non-zero)
-            $monthsWithData = 0;
-            foreach ($data[$familyKey]['arrov'] as $teamData) {
-                foreach ($teamData as $value) {
-                    if ($value > 0) {
-                        $monthsWithData++;
-                        break;
-                    }
-                }
-            }
-
-            $kpi['avg_arrov'] = $monthsWithData > 0 ? round($kpi['total_arrov'] / $monthsWithData, 2) : 0;
-        }
-
-        return [
-            'fiscal_year' => (int)$fiscalYear,
-            'date_range' => [
-                'start' => $startDate,
-                'end' => $endDate
-            ],
-            'teams' => $teams,
-            'families' => $families,
-            'months' => $months,
-            'data' => $data
-        ];
-    }
-
-    /**
-     * Get fiscal year date range (April 1 – March 31)
-     * 
-     * @param int $fiscalYear Fiscal year number
-     * @return array { 'start': '2025-04-01', 'end': '2026-03-31' }
-     */
-    public function getFiscalYearRange($fiscalYear)
-    {
-        $fy = (int)$fiscalYear;
-        $startYear = $fy - 1;
-        $endYear = $fy;
-
-        return [
-            'start' => "$startYear-04-01",
-            'end' => "$endYear-03-31"
-        ];
-    }
-
-    /**
-     * Get current fiscal year
-     * 
-     * @return int Current fiscal year
-     */
-    public static function getCurrentFiscalYear()
-    {
-        $month = (int)date('n');
-        $year = (int)date('Y');
-        return $month >= 4 ? $year + 1 : $year;
-    }
-
-    /**
-     * Build WHERE clause for product pipeline filtering
-     * 
-     * @param array $filters Team, Agent, Stage, Month, Quarter, Year, etc.
-     * @param array $params Reference to bind parameters
-     * @return string WHERE clause (empty string if no filters)
-     */
     protected function buildProductPipelineWhereClause(array $filters, array &$params)
     {
         $filters = $this->parseFilters($filters);
@@ -449,13 +230,11 @@ class SfdcProductPipelineModel extends SfdcBaseModel
             $params[':year'] = (int)$filters['year'];
         }
 
-        // Add product family filter
         if (isset($filters['product_family']) && $filters['product_family'] !== '') {
             $conditions[] = 'Product_Family = :product_family';
             $params[':product_family'] = $filters['product_family'];
         }
 
-        // Add stage filter - now properly handles empty/null values
         if (isset($filters['stage']) && $filters['stage'] !== '') {
             $conditions[] = 'Stage = :stage';
             $params[':stage'] = $filters['stage'];
@@ -464,21 +243,8 @@ class SfdcProductPipelineModel extends SfdcBaseModel
         return $conditions ? ' WHERE ' . implode(' AND ', $conditions) : '';
     }
 
+    /****** DASHBOARD METHODS ******/
 
-
-   /****************************************************************************************************************************************************************
-     *  PRODUCT PIPELINE DASHBOAR METHODS AND CHARTS
-     ***************************************************************************************************************************************************************/
-
-
-
-    /****************************************************************************************************************************************************************
-     * Load dashboard filter options for the selected fiscal year.
-     * Returns:
-     * - product_families: all families in FY
-     * - all_product_names: all names in FY
-     * - names_by_family: names grouped by family
-     ***************************************************************************************************************************************************************/
     public function loadFilterOptions($fiscalYear)
     {
         $range = $this->getFiscalYearRange($fiscalYear);
@@ -545,11 +311,6 @@ class SfdcProductPipelineModel extends SfdcBaseModel
         ];
     }
 
-    /**
-     * DATASET 1:
-     * Get filtered raw rows after Fiscal Year / Product Family / Product Name filters.
-     * This remains row-level product data.
-     */
     public function getFilteredRawRows(array $filters)
     {
         $fiscalYear = isset($filters['fiscal_year']) ? (int)$filters['fiscal_year'] : self::getCurrentFiscalYear();
@@ -627,9 +388,6 @@ class SfdcProductPipelineModel extends SfdcBaseModel
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    /**
-     * Convert raw DB row to normalized numeric/string fields for dashboard logic.
-     */
     protected function normalizeDashboardRow(array $row)
     {
         $contractTerm = isset($row['Contract_Term_Months']) ? (float)$row['Contract_Term_Months'] : 0;
@@ -658,11 +416,11 @@ class SfdcProductPipelineModel extends SfdcBaseModel
     }
 
     /**
-     * DATASET 2:
-     * Centralized ARROV cleaning layer.
-     *
-     * Mandatory rule:
-     * for every Opp Ref, SUM(cleaned_ARROV) must equal AOV Multi.
+     * DATASET 2: Clean ARROV values
+     * 
+     * Rule: If ARROV > AOV_Multi, normalize by /12. Otherwise keep raw.
+     * Check if sum of cleaned ARROV = AOV_Multi for each opp.
+     * Log mismatches to error_log.
      */
     public function cleanRowArrovValues(array $rows)
     {
@@ -684,83 +442,49 @@ class SfdcProductPipelineModel extends SfdcBaseModel
         }
 
         $cleanedRows = [];
+        $mismatches = [];
 
         foreach ($grouped as $oppRef => $oppRows) {
-            $rowCount = count($oppRows);
             $aovMulti = (float)$oppRows[0]['aov_multi'];
+            $cleanedSum = 0.0;
 
-            // Single-row opportunity
-            if ($rowCount === 1) {
-                $row = $oppRows[0];
-                $row['cleaned_arrov'] = $aovMulti;
-                $row['cleaning_method'] = 'single_row_use_aov_multi';
-                $row['cleaning_sum_after'] = $aovMulti;
-                $cleanedRows[] = $row;
-                continue;
-            }
-
-            // Multi-row opportunity: first compare raw ARROV sum vs AOV Multi
-            $sumArrov = 0.0;
-            foreach ($oppRows as $row) {
-                $sumArrov += (float)$row['arrov'];
-            }
-
-            // Rule 1: if sum(ARROV) == AOV Multi, keep ARROV row values as-is
-            if (abs($sumArrov - $aovMulti) < 0.01) {
-                foreach ($oppRows as $row) {
-                    $row['cleaned_arrov'] = (float)$row['arrov'];
-                    $row['cleaning_method'] = 'multi_row_raw_arrov_matches_aov';
-                    $row['cleaning_sum_after'] = $sumArrov;
-                    $cleanedRows[] = $row;
-                }
-                continue;
-            }
-
-            // Rule 2: if mismatch, normalize only rows where ARROV > AOV Multi by /12
-            $adjustedRows = [];
-            $adjustedSum = 0.0;
-
+            // Apply normalization rule
             foreach ($oppRows as $row) {
                 $rawArrov = (float)$row['arrov'];
-                $cleanedArrov = $rawArrov;
 
                 if ($rawArrov > $aovMulti) {
+                    // Normalize: ARROV / 12
                     $cleanedArrov = round($rawArrov / 12, 2);
-                    $row['cleaning_method'] = 'multi_row_row_gt_aov_div_12';
                 } else {
-                    $row['cleaning_method'] = 'multi_row_row_kept_raw';
+                    // Keep raw
+                    $cleanedArrov = $rawArrov;
                 }
 
                 $row['cleaned_arrov'] = $cleanedArrov;
-                $adjustedRows[] = $row;
-                $adjustedSum += $cleanedArrov;
+                $row['cleaned_aov'] = $aovMulti;
+                $cleanedRows[] = $row;
+                $cleanedSum += $cleanedArrov;
             }
 
-            // Store final opportunity-level validation result on each row
-            $finalMethod = abs($adjustedSum - $aovMulti) < 0.01
-                ? 'multi_row_normalized_sum_matches_aov'
-                : 'multi_row_normalized_sum_still_mismatch';
-
-            foreach ($adjustedRows as $row) {
-                $row['cleaning_validation'] = $finalMethod;
-                $row['cleaning_sum_after'] = round($adjustedSum, 2);
-                $row['cleaning_target_aov'] = round($aovMulti, 2);
-                $cleanedRows[] = $row;
+            // Check if sum matches AOV Multi
+            if (abs($cleanedSum - $aovMulti) >= 0.01) {
+                $mismatches[] = sprintf(
+                    '%s: cleaned sum %.2f ≠ AOV Multi %.2f',
+                    $oppRef,
+                    round($cleanedSum, 2),
+                    round($aovMulti, 2)
+                );
             }
         }
+
+        //*
+        //if (!empty($mismatches)) {
+        //  error_log('SFDC Product Pipeline Normalization Mismatches: ' . implode(' | ', $mismatches));
+        //}
 
         return $cleanedRows;
     }
 
-    /**
-     * DATASET 3:
-     * Build deduplicated opportunity rows after filters are applied.
-     * One row per Opp Ref.
-     *
-     * Canonical business rule for opportunity-level reporting:
-     * - use deduplicated AOV Multi once per opportunity
-     * - use opportunity-level fields from one stable representative row
-     */
     public function buildUniqueOpportunityRows(array $rows)
     {
         $unique = [];
@@ -783,7 +507,7 @@ class SfdcProductPipelineModel extends SfdcBaseModel
                     'probability' => isset($row['probability']) ? (float)$row['probability'] : 0,
                     'age' => isset($row['age']) ? (float)$row['age'] : 0,
                     'close_date' => $row['close_date'] ?? null,
-                    'aov_multi' => isset($row['aov_multi']) ? (float)$row['aov_multi'] : 0
+                    'cleaned_aov' => isset($row['cleaned_aov']) ? (float)$row['cleaned_aov'] : 0
                 ];
             }
         }
@@ -791,9 +515,6 @@ class SfdcProductPipelineModel extends SfdcBaseModel
         return array_values($unique);
     }
 
-    /**
-     * KPI cards from deduplicated opportunity dataset.
-     */
     public function getKpiCards(array $uniqueOppRows)
     {
         $totalPipeline = 0.0;
@@ -802,7 +523,7 @@ class SfdcProductPipelineModel extends SfdcBaseModel
         $oppCount = count($uniqueOppRows);
 
         foreach ($uniqueOppRows as $row) {
-            $aov = isset($row['aov_multi']) ? (float)$row['aov_multi'] : 0;
+            $aov = isset($row['cleaned_aov']) ? (float)$row['cleaned_aov'] : 0;
             $probability = isset($row['probability']) ? (float)$row['probability'] : 0;
             $age = isset($row['age']) ? (float)$row['age'] : 0;
 
@@ -819,10 +540,6 @@ class SfdcProductPipelineModel extends SfdcBaseModel
         ];
     }
 
-    /**
-     * Chart: Pipeline by Stage
-     * Opportunity-level, deduplicated AOV Multi.
-     */
     public function getStageChart(array $uniqueOppRows)
     {
         $totals = [];
@@ -837,7 +554,7 @@ class SfdcProductPipelineModel extends SfdcBaseModel
                 $totals[$stage] = 0.0;
             }
 
-            $totals[$stage] += (float)$row['aov_multi'];
+            $totals[$stage] += (float)$row['cleaned_aov'];
         }
 
         arsort($totals);
@@ -848,10 +565,6 @@ class SfdcProductPipelineModel extends SfdcBaseModel
         ];
     }
 
-    /**
-     * Chart: Pipeline by Team
-     * Opportunity-level, deduplicated AOV Multi, stage split.
-     */
     public function getTeamChart(array $uniqueOppRows)
     {
         $teams = [];
@@ -886,7 +599,7 @@ class SfdcProductPipelineModel extends SfdcBaseModel
                 $matrix[$stage][$team] = 0.0;
             }
 
-            $matrix[$stage][$team] += (float)$row['aov_multi'];
+            $matrix[$stage][$team] += (float)$row['cleaned_aov'];
         }
 
         sort($teams);
@@ -911,10 +624,6 @@ class SfdcProductPipelineModel extends SfdcBaseModel
         ];
     }
 
-    /**
-     * Chart: Age vs AOV
-     * Opportunity-level scatter.
-     */
     public function getAgeScatter(array $uniqueOppRows)
     {
         $datasetsByStage = [];
@@ -931,7 +640,7 @@ class SfdcProductPipelineModel extends SfdcBaseModel
 
             $datasetsByStage[$stage][] = [
                 'x' => (float)($row['age'] ?? 0),
-                'y' => (float)($row['aov_multi'] ?? 0),
+                'y' => (float)($row['cleaned_aov'] ?? 0),
                 'oppRef' => $row['opp_ref'] ?? '',
                 'opportunityName' => $row['opportunity_name'] ?? ''
             ];
@@ -950,10 +659,6 @@ class SfdcProductPipelineModel extends SfdcBaseModel
         ];
     }
 
-    /**
-     * Chart: Probability Distribution
-     * Opportunity-level attributes from deduplicated dataset.
-     */
     public function getProbabilityChart(array $uniqueOppRows)
     {
         $buckets = [
@@ -966,7 +671,7 @@ class SfdcProductPipelineModel extends SfdcBaseModel
 
         foreach ($uniqueOppRows as $row) {
             $prob = (float)($row['probability'] ?? 0);
-            $aov = (float)($row['aov_multi'] ?? 0);
+            $aov = (float)($row['cleaned_aov'] ?? 0);
 
             if ($prob <= 10) {
                 $bucket = '0-10';
@@ -999,10 +704,6 @@ class SfdcProductPipelineModel extends SfdcBaseModel
         ];
     }
 
-    /**
-     * Chart: Product Family Mix
-     * Product-level composition view using cleaned_ARROV.
-     */
     public function getProductFamilyMixChart(array $cleanedRows)
     {
         $totals = [];
@@ -1028,10 +729,6 @@ class SfdcProductPipelineModel extends SfdcBaseModel
         ];
     }
 
-    /**
-     * Chart: Close Date Timeline
-     * Opportunity-level, deduplicated AOV Multi.
-     */
     public function getCloseTimeline(array $uniqueOppRows)
     {
         $points = [];
@@ -1044,7 +741,7 @@ class SfdcProductPipelineModel extends SfdcBaseModel
 
             $points[] = [
                 'x' => $closeDate,
-                'y' => (float)($row['aov_multi'] ?? 0),
+                'y' => (float)($row['cleaned_aov'] ?? 0),
                 'r' => 6,
                 'stage' => $row['stage'] ?? '',
                 'oppRef' => $row['opp_ref'] ?? '',
@@ -1057,11 +754,7 @@ class SfdcProductPipelineModel extends SfdcBaseModel
         ];
     }
 
-    /**
-     * Chart: Monthly Team AOV
-     * Opportunity-level, deduplicated AOV Multi, fiscal order April -> March.
-     */
-    public function getMonthlyTeamFiscalChart(array $uniqueOppRows)
+    public function getMonthlyTeamFiscalChart(array $cleanedRows)
     {
         $fiscalMonthMap = [
             4 => 'Apr',
@@ -1082,7 +775,7 @@ class SfdcProductPipelineModel extends SfdcBaseModel
         $teams = [];
         $matrix = [];
 
-        foreach ($uniqueOppRows as $row) {
+        foreach ($cleanedRows as $row) {
             $team = trim((string)($row['team'] ?? ''));
             $closeDate = $row['close_date'] ?? null;
 
@@ -1113,7 +806,7 @@ class SfdcProductPipelineModel extends SfdcBaseModel
                 $matrix[$team][$monthLabel] = 0.0;
             }
 
-            $matrix[$team][$monthLabel] += (float)($row['aov_multi'] ?? 0);
+            $matrix[$team][$monthLabel] += (float)($row['cleaned_arrov'] ?? 0);
         }
 
         sort($teams);
@@ -1135,5 +828,24 @@ class SfdcProductPipelineModel extends SfdcBaseModel
             'labels' => $labels,
             'datasets' => $datasets
         ];
+    }
+
+    public function getFiscalYearRange($fiscalYear)
+    {
+        $fy = (int)$fiscalYear;
+        $startYear = $fy - 1;
+        $endYear = $fy;
+
+        return [
+            'start' => "$startYear-04-01",
+            'end' => "$endYear-03-31"
+        ];
+    }
+
+    public static function getCurrentFiscalYear()
+    {
+        $month = (int)date('n');
+        $year = (int)date('Y');
+        return $month >= 4 ? $year + 1 : $year;
     }
 }

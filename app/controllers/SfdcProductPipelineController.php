@@ -1,5 +1,5 @@
 <?php
-
+ini_set('error_log', '/var/www/html/error.log');
 require_once __DIR__ . '/SfdcBaseController.php';
 require_once __DIR__ . '/../models/SfdcProductPipelineModel.php';
 
@@ -110,13 +110,8 @@ class SfdcProductPipelineController extends SfdcBaseController
     }
 
     /**
-     * Get dashboard data for a fiscal year
+     * Get dashboard data for a fiscal year with filters
      * 
-     * GET /api/sfdc_product_pipeline.php?action=get_dashboard_data&fiscal_year=2026
-     */
-    /**
-     * Get dashboard data for a fiscal year
-     *
      * GET /api/sfdc_product_pipeline.php?action=get_dashboard_data&fiscal_year=2026
      * GET /api/sfdc_product_pipeline.php?action=get_dashboard_data&fiscal_year=2026&product_families=A,B&product_names=X,Y
      */
@@ -150,10 +145,10 @@ class SfdcProductPipelineController extends SfdcBaseController
 
             // 2) Raw filtered rows
             $rawRows = $this->model->getFilteredRawRows($filters);
-
-            // 3) Centralized cleaning layer
+     
+            // 3) Centralized cleaning layer (applies ARROV normalization + logs mismatches)
             $cleanedRows = $this->model->cleanRowArrovValues($rawRows);
-
+     
             // 4) Deduplicated opportunity dataset
             $uniqueOppRows = $this->model->buildUniqueOpportunityRows($cleanedRows);
 
@@ -168,7 +163,7 @@ class SfdcProductPipelineController extends SfdcBaseController
                     'probability' => $this->model->getProbabilityChart($uniqueOppRows),
                     'productFamilyMix' => $this->model->getProductFamilyMixChart($cleanedRows),
                     'closeTimeline' => $this->model->getCloseTimeline($uniqueOppRows),
-                    'monthlyTeamFiscal' => $this->model->getMonthlyTeamFiscalChart($uniqueOppRows),
+                    'monthlyTeamFiscal' => $this->model->getMonthlyTeamFiscalChart($cleanedRows),
                 ],
             ];
 
@@ -177,4 +172,6 @@ class SfdcProductPipelineController extends SfdcBaseController
             $this->jsonError('Failed to load dashboard data: ' . $e->getMessage(), 500);
         }
     }
+
+
 }
