@@ -112,16 +112,15 @@ def clean_currency(value):
 
 def parse_npv_from_description(value):
     """
-    Parse NPV from Description field.
-    Description contains bare numbers (e.g., "4079", "40", "255").
-    Treat entire Description as the NPV value.
+    Parse NPV from Description → float or NaN (not 0!) on failure.
     """
     if pd.isna(value) or not isinstance(value, str):
-        return None
+        return None  # NaN
 
     text = value.strip()
+    if not text:
+        return None
 
-    # Clean and normalize the number
     raw = text.replace(' ', '')
     if ',' in raw and '.' in raw:
         raw = raw.replace('.', '').replace(',', '.')
@@ -131,7 +130,7 @@ def parse_npv_from_description(value):
     try:
         return float(raw)
     except ValueError:
-        return None
+        return None  # Keep NaN for non-numbers
 
 
 def apply_revised_defaults(df):
@@ -157,14 +156,14 @@ def apply_revised_defaults(df):
             revised_aov, errors='coerce').fillna(0)
 
     if npv_source in df.columns:
+        # Parse → NaN on failure (no auto-0)
         parsed_npv = df[npv_source].apply(parse_npv_from_description)
-        parsed_npv = pd.to_numeric(parsed_npv, errors='coerce')
-
-        revised_npv = df['Revised NPV'].copy()
-        mask_npv = revised_npv.isna() | (revised_npv == 0)
-        revised_npv = revised_npv.where(~mask_npv, parsed_npv)
-        df['Revised NPV'] = pd.to_numeric(
-            revised_npv, errors='coerce').fillna(0)
+    
+        # Revised NPV: ALWAYS uses parsed (NaN where no data)
+        df['Revised NPV'] = pd.to_numeric(parsed_npv, errors='coerce')
+    
+        print(f"Revised NPV populated: {(df['Revised NPV'].notna()).sum()} rows, "
+              f"NaN: {(df['Revised NPV'].isna()).sum()} rows")
 
     return df
 
