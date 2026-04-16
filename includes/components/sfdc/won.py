@@ -111,26 +111,27 @@ def clean_currency(value):
 
 
 def parse_npv_from_description(value):
-    """
-    Parse NPV from Description → float or NaN (not 0!) on failure.
-    """
     if pd.isna(value) or not isinstance(value, str):
-        return None  # NaN
-
+        return None
     text = value.strip()
     if not text:
         return None
 
+    # Handle decimals first: 46.78, 1.742,40
     raw = text.replace(' ', '')
-    if ',' in raw and '.' in raw:
-        raw = raw.replace('.', '').replace(',', '.')
-    else:
-        raw = raw.replace(',', '.')
-
+    if '.' in raw or ',' in raw:
+        raw = raw.replace('.', '')  # Remove dots as thousand sep
+        raw = raw.replace(',', '.')  # Comma as decimal
     try:
         return float(raw)
     except ValueError:
-        return None  # Keep NaN for non-numbers
+        return None
+
+
+# Usage (your new block):
+if npv_source in df.columns:
+    parsed_npv = df[npv_source].apply(parse_npv_from_description)
+    df['Revised NPV'] = pd.to_numeric(parsed_npv, errors='coerce')
 
 
 def apply_revised_defaults(df):
