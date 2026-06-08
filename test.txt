@@ -1,0 +1,29 @@
+Here is your clean, step-by-step workflow in order, formatted for quick reference whenever you are developing:
+
+1. In Folder
+Always make sure you are in the correct project directory before running any Git commands.
+
+cd /var/www/html/crm3
+
+2. Pull
+Always pull the absolute latest changes from GitHub before you touch a single line of code. This completely prevents merge conflicts.
+
+git pull origin master
+
+3. Code
+Open up VS Code or your preferred editor, write your features, fix bugs, and test your changes locally.
+
+4. Commit
+Once your code changes are working and ready, group them together and save them into your local history with a clear message.
+
+git add .
+git commit -m "Your clear description of what changed"
+
+5. Push
+Send your freshly saved commits up to the standalone GitHub repository so your other environments can access them.
+
+
+git push origin master
+
+
+Whenever you switch over to the other machine (from WSL to the Pi, or vice versa), you simply run Step 1 (In Folder) and Step 2 (Pull) to get instantly up to date!
