@@ -13,7 +13,9 @@ $isDev = (
     strpos($hostname, 'piedone.go.ro') !== false ||
     strpos($hostname, 'localhost') !== false ||
     strpos($hostname, '.local') !== false ||
-    strpos($hostname, '127.0.0.1') !== false
+    strpos($hostname, '127.0.0.1') !== false ||
+    strpos($hostname, 'raspberry-pi') !== false ||  // Add your Tailscale hostname
+    strpos($hostname, '100.') !== false
 );
 
 if ($isDev) {
