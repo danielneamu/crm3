@@ -15,7 +15,7 @@ $isDev = (
     strpos($hostname, '.local') !== false ||
     strpos($hostname, '127.0.0.1') !== false ||
     strpos($hostname, 'raspberry-pi') !== false ||  // Add your Tailscale hostname
-    strpos($hostname, '100.') !== false
+    strpos($hostname, '100.') !== false // Add your Tailscale IP
 );
 
 if ($isDev) {
