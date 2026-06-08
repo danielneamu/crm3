@@ -1,4 +1,4 @@
-ADDING TITLE 
+deleting title ADDING TITLE 
 
 Here is your clean, step-by-step workflow in order, formatted for quick reference whenever you are developing:
 
